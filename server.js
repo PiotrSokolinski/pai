@@ -26,6 +26,12 @@ var sendErrorOnStaticContent = function (response, code) {
     response.end();
 }
 
+var sendJSONWithError = function (response, code, text) {
+    console.log('>>> sending JSON with error ' + code);
+    response.writeHead(code, 'ERROR', { 'Content-type': 'application/json'});
+    response.end(JSON.stringify({ error: text }));
+}
+
 var sendFile = function (response, filePath, fileContents) {
     var mimeType = mime.getType(path.basename(filePath));
     response.writeHead(200, {'Content-Type': mimeType });
@@ -57,6 +63,11 @@ var serveStaticContent = function (response, absPath) {
     });
 }
 
+var konto = {
+    saldo: 100,
+    limit: -1000
+};
+
 var httpServer = http.createServer();
 
 httpServer.on('request', function (req, rep) {
@@ -69,6 +80,31 @@ httpServer.on('request', function (req, rep) {
 		serveStaticContent(rep, 'img/favicon.ico');
     } else if(/^\/(html|css|js|fonts|img)\//.test(req.url)) {
         serveStaticContent(rep, '.' + req.url);
+    } else if(req.url == '/konto') {
+        switch(req.method) {
+            case 'GET':
+                rep.writeHead(200, 'OK', { 'Content-type': 'application/json' });
+                rep.end(JSON.stringify(konto));
+                break;
+            case 'POST':
+                req.setEncoding('utf8');
+                var payload = '';
+                req.on('data', function(data) {
+                    payload += data;
+                }).on('end', function() {
+                    try {
+                        op = JSON.parse(payload);
+                        console.log(op);
+                        rep.writeHead(200, 'OK', { 'Content-type': 'application/json' });
+                        rep.end(JSON.stringify(konto));        
+                    } catch(ex) {
+                        sendJSONWithError(rep, 400, 'Payload is not valid JSON');
+                    }
+                });
+                break;
+            default:
+                sendJSONWithError(rep, 400, 'Invalid method for ' + req.url);
+        }
     } else {
 	    sendErrorOnStaticContent(rep, 403);
     }
@@ -78,7 +114,7 @@ httpServer.on('request', function (req, rep) {
 try {
     httpServer.listen(config.port);
 } catch(ex) {
-    console.log("Port " + config.listeningPort + " cannot be used");
+    console.log("Port " + config.port + " cannot be used");
     process.exit();
 }
 console.log("HTTP server is listening on the port " + config.port);

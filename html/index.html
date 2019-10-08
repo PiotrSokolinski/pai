@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html ng-app="app1">
 
 <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta charset="utf-8">
@@ -11,13 +11,13 @@
     <script src="/js/bootstrap.min.js"></script>
 </head>
     
-<body class="workarea">
+<body class="workarea" ng-controller="Ctrl1 as ctrl">
     
     <div class="container">
 
-		<h1>Zaczynamy!</h1>
+		<h1>Konto</h1>
 	
-		Projekt bazowy do dalszych rozważań.
+		<p ng-bind="ctrl.konto.saldo"></p>
 	</div>
     
 <script src="/js/angular.min.js"></script>
