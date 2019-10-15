@@ -17,7 +17,21 @@
 
 		<h1>Konto</h1>
 	
-		<p ng-bind="ctrl.konto.saldo"></p>
+        <h3 ng-bind="ctrl.konto.saldo"></h3>
+        <p>Limit <span ng-bind="ctrl.konto.limit"></span></p>
+        
+        <p>Operacja
+            <select class="form-inline" ng-model="ctrl.transakcja.operacja">
+                <option value="wy">Wypłata</option>
+                <option value="wp">Wpłata</option>
+            </select>
+            <input class="form-inline" type="number" ng-model="ctrl.transakcja.kwota"/>
+            <button class="btn btn-primary" ng-click="ctrl.robTransakcje()" ng-disabled="ctrl.formInvalid()">Zrób</button>
+        </p>
+
+        <p>Ostatni komunikat z serwera
+            <span class="badge" ng-bind="ctrl.message"></span>
+        </p>
 	</div>
     
 <script src="/js/angular.min.js"></script>
