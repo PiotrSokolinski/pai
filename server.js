@@ -41,8 +41,10 @@ httpServer.on('request', function (req, rep) {
                         switch(op.operacja) {
                             case 'wy': mnoznik = -1; break;
                             case 'wp': mnoznik = +1; break;
-                        }                
-                        if(konto.saldo + mnoznik * op.kwota < konto.limit) {
+                        }
+                        if(mnoznik == 0 || op.kwota <= 0) {
+                            lib.sendJSONWithError(rep, 400, 'Invalid operation data');
+                        } else if(konto.saldo + mnoznik * op.kwota < konto.limit) {
                             lib.sendJSONWithError(rep, 400, 'Limit exceeded');
                         } else {
                             konto.saldo += mnoznik * op.kwota;
