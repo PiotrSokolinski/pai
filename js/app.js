@@ -24,4 +24,10 @@ app1.controller("Ctrl1", [ "$http", function($http) {
         }
         return ctrl.transakcja.kwota <= 0 || ctrl.konto.saldo + mnoznik * ctrl.transakcja.kwota < ctrl.konto.limit;
     };
+
+    ctrl.persons = [];
+    $http.get('/persons').then(
+        function(rep) { ctrl.persons = rep.data; },
+        function(err) {}
+    );
 }]);

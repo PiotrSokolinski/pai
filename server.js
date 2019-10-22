@@ -1,13 +1,26 @@
 /* internal modules */
 var http = require('http');
+var fs = require('fs');
+var qs = require('query-string');
+
+/* external modules */
+var mongodb = require('mongodb');
 
 /* own modules */
 var lib = require('./lib');
 
 /* configuration */
-var config = {
-    port: 8888
-};
+var config = {};
+try {
+    var content = fs.readFileSync('config.json');
+    config = JSON.parse(content);
+} catch(ex) {
+    console.error(ex.message);
+    process.exit(1);
+}
+
+/* collections */
+var persons = null;
 
 /* data */
 var konto = {
@@ -56,6 +69,24 @@ httpServer.on('request', function (req, rep) {
             default:
                 lib.sendJSONWithError(rep, 400, 'Invalid method ' + req.method + ' for ' + req.url);
         }
+    } else if(req.url == '/persons') {
+        persons.find().toArray(function(err, docs) {
+            if(err) {
+                lib.sendJSONWithError(rep, 400, 'DBERROR');
+            } else {
+                lib.sendJSON(rep, docs);
+            }
+        });
+    } else if(/^\/persons?/.test(req.url)) {
+        var pars = qs.parseUrl(req.url);
+        var id = pars.query.id;
+        persons.findOne({_id: mongodb.ObjectId(id)}, {}, function(err, doc) {
+            if(err) {
+                lib.sendJSONWithError(rep, 400, 'DBERROR');
+            } else {
+                lib.sendJSON(rep, doc);
+            }
+        });
     } else {
 	    lib.sendErrorOnStaticContent(rep, 403);
     }
@@ -68,5 +99,14 @@ process.on('uncaughtException', function(err) {
     process.exit(1);
 });
 
-httpServer.listen(config.port);
-console.log("HTTP server is listening on the port " + config.port);
+mongodb.MongoClient.connect(config.db, { useNewUrlParser: true, useUnifiedTopology: true }, function(err, conn) {
+    if(err) {
+        console.error('Connection to ' + config.db + ' failed: ' + err.name);
+        process.exit(2);
+    }
+    var db = conn.db(config.dbName);
+    persons = db.collection('persons');
+    console.log('Connection with ' + config.db + ' established');
+    httpServer.listen(config.port);
+    console.log("HTTP server is listening on the port " + config.port);
+});

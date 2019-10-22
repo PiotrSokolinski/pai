@@ -32,6 +32,14 @@
         <p>Ostatni komunikat z serwera
             <span class="badge" ng-bind="ctrl.message"></span>
         </p>
+
+        <table class="table table-hover">
+            <tr ng-repeat="person in ctrl.persons">
+                <td ng-bind="person._id"></td>
+                <td ng-bind="person.firstName"></td>
+                <td ng-bind="person.lastName"></td>
+            </tr>
+        </table>
 	</div>
     
 <script src="/js/angular.min.js"></script>
