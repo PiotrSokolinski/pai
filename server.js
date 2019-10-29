@@ -5,6 +5,8 @@ var fs = require('fs');
 /* external modules */
 var qs = require('query-string');
 var mongodb = require('mongodb');
+var cookies = require('cookies');
+var uuid = require('uuid');
 
 /* own modules */
 var lib = require('./lib');
@@ -24,8 +26,23 @@ try {
 /* HTTP server */
 var httpServer = http.createServer();
 
+var sessions = {};
+
 httpServer.on('request', function (req, rep) {
     console.log('<<< ' + req.method + ' ' + req.url);
+
+    var appCookies = new cookies(req, rep);
+    var session = appCookies.get('session');
+    var now = Date.now();
+    if(!session || !sessions[session]) {
+        session = uuid();
+        sessions[session] = { from: req.connection.remoteAddress, created: now, touched: now };
+        appCookies.set('session', session, { httpOnly: false });
+    } else {
+        sessions[session].touched = now;
+        appCookies.set('session', session, { httpOnly: false });
+    }
+
     var parsedUrl = qs.parseUrl(req.url);
     if(req.method == 'POST' || req.method == 'PUT') {
         /* requests with payload will be redirected to rest */
@@ -72,7 +89,8 @@ mongodb.MongoClient.connect(config.db, { useNewUrlParser: true, useUnifiedTopolo
         process.exit(2);
     }
     var db = conn.db(config.dbName);
-    common.persons = db.collection('persons');
+    common.accounts = db.collection('accounts');
+    common.history = db.collection('history');
     console.log('Connection with ' + config.db + ' established');
     httpServer.listen(config.port);
     console.log("HTTP server is listening on the port " + config.port);

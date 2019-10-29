@@ -17,15 +17,15 @@
 
 		<h1>Konto</h1>
 	
-        <h3>Saldo <span ng-bind="ctrl.konto.saldo"></span></h3>
+        <h3>Saldo <span ng-bind="ctrl.konto.balance"></span></h3>
         <p>Limit <span ng-bind="ctrl.konto.limit"></span></p>
         
         <p>Operacja
-            <select class="form-inline" ng-model="ctrl.transakcja.operacja">
-                <option value="wy">Wypłata</option>
-                <option value="wp">Wpłata</option>
+            <select class="form-inline" ng-model="ctrl.transakcja.operation">
+                <option value="wi">Wypłata</option>
+                <option value="de">Wpłata</option>
             </select>
-            <input class="form-inline" type="number" ng-model="ctrl.transakcja.kwota"/>
+            <input class="form-inline" type="number" ng-model="ctrl.transakcja.amount"/>
             <button class="btn btn-primary" ng-click="ctrl.robTransakcje()" ng-disabled="ctrl.formInvalid()">Zrób</button>
         </p>
 
@@ -33,11 +33,13 @@
             <span class="badge" ng-bind="ctrl.message"></span>
         </p>
 
+        <p>Historia</p>
         <table class="table table-hover">
-            <tr ng-repeat="person in ctrl.persons">
-                <td ng-bind="person._id"></td>
-                <td ng-bind="person.firstName"></td>
-                <td ng-bind="person.lastName"></td>
+            <tr ng-repeat="entry in ctrl.historia | orderBy: '-'">
+                <td ng-bind="ctrl.stamp2date(entry.date)"></td>
+                <td ng-bind="entry.operation"></td>
+                <td ng-bind="entry.amount"></td>
+                <td ng-bind="entry.balance"></td>
             </tr>
         </table>
 	</div>

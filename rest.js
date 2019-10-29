@@ -8,57 +8,64 @@ var common = require('./common');
 
 module.exports = function(url, req, rep, query, payload) {
 
+    console.log('REST handling ' + req.method + ' ' + url + ' query ' + JSON.stringify(query) + ' payload ' + JSON.stringify(payload));
     switch(url) {
 
-        case '/konto':
+        case '/account':
             switch(req.method) {
                 case 'GET':
-                    lib.sendJSON(rep, common.konto);
+                    common.accounts.findOne({_id: mongodb.ObjectId(common.accountNo)}, {}, function(err, account) {
+                        if(err) {
+                            lib.sendJSONWithError(rep, 400, 'No such object'); return;
+                        }                
+                        lib.sendJSON(rep, account);
+                    });
                     break;
                 case 'POST':
-                    var mnoznik = 0;
-                    switch(payload.operacja) {
-                        case 'wy': mnoznik = -1; break;
-                        case 'wp': mnoznik = +1; break;
-                    }
-                    if(mnoznik == 0 || payload.kwota <= 0) {
-                        lib.sendJSONWithError(rep, 400, 'Invalid operation data');
-                    } else if(common.konto.saldo + mnoznik * payload.kwota < common.konto.limit) {
-                        lib.sendJSONWithError(rep, 400, 'Limit exceeded');
-                    } else {
-                        common.konto.saldo += mnoznik * payload.kwota;
-                        lib.sendJSON(rep, common.konto);
-                    }
+                    common.accounts.findOne({_id: mongodb.ObjectId(common.accountNo)}, {}, function(err, account) {
+                        if(err) {
+                            lib.sendJSONWithError(rep, 400, 'No such object'); return;
+                        }                
+                        var multiplier = 0;
+                        switch(payload.operation) {
+                            case 'wi': multiplier = -1; break;
+                            case 'de': multiplier = +1; break;
+                        }
+                        if(multiplier == 0 || isNaN(payload.amount) || payload.amount <= 0) {
+                            lib.sendJSONWithError(rep, 400, 'Invalid operation data');
+                        } else if(account.balance + multiplier * payload.amount < account.limit) {
+                            lib.sendJSONWithError(rep, 400, 'Limit exceeded');
+                        } else {
+                            common.accounts.findOneAndUpdate({_id: mongodb.ObjectId(common.accountNo)},
+                                {$set: {balance: account.balance + multiplier * payload.amount, lastOperation: new Date().getTime()}},
+                                {returnOriginal: false}, function(err, updateData) {
+                                if(err) {
+                                    lib.sendJSONWithError(rep, 400, 'Update failed'); return;
+                                }
+                                common.history.insertOne({
+                                    date: updateData.value.lastOperation,
+                                    account: common.accountNo,
+                                    operation: payload.operation,
+                                    amount: payload.amount,
+                                    balance: updateData.value.balance
+                                });
+                                lib.sendJSON(rep, updateData.value);    
+                            });
+                        }
+                    });
                     break;
                 default:
                     lib.sendJSONWithError(rep, 400, 'Invalid method ' + req.method + ' for ' + url);
             }
             break;
-
-        case '/persons':
-            if(!query || !query.id) {
-                common.persons.find().toArray(function(err, docs) {
-                    if(err) {
-                        lib.sendJSONWithError(rep, 400, 'Database error');
-                    } else {
-                        lib.sendJSON(rep, docs);
-                    }
-                });
-            } else {
-                try {
-                    common.persons.findOne({_id: mongodb.ObjectId(query.id)}, {}, function(err, doc) {
-                        if(err) {
-                            lib.sendJSONWithError(rep, 400, 'Database error');
-                        } else {
-                            lib.sendJSON(rep, doc);
-                        }
-                    });
-                } catch(ex) {
-                    lib.sendJSONWithError(rep, 400, 'Invalid id');
+        case '/history':
+            common.history.find().sort({date:1}).toArray(function(err, entries) {
+                if(err) {
+                    lib.sendJSONWithError(rep, 400, 'History disabled'); return;    
                 }
-            }
+                lib.sendJSON(rep, entries);
+            });
             break;
-
         default:
             lib.sendJSONWithError(rep, 400, 'Invalid rest endpoint ' + url);
     }
