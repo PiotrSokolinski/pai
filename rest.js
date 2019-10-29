@@ -17,7 +17,8 @@ module.exports = function(url, req, rep, query, payload) {
                     common.accounts.findOne({_id: mongodb.ObjectId(common.accountNo)}, {}, function(err, account) {
                         if(err) {
                             lib.sendJSONWithError(rep, 400, 'No such object'); return;
-                        }                
+                        }
+                        delete account.password;                
                         lib.sendJSON(rep, account);
                     });
                     break;
@@ -49,6 +50,7 @@ module.exports = function(url, req, rep, query, payload) {
                                     amount: payload.amount,
                                     balance: updateData.value.balance
                                 });
+                                delete updateData.value.password;
                                 lib.sendJSON(rep, updateData.value);    
                             });
                         }

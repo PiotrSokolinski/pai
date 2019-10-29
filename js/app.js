@@ -33,6 +33,6 @@ app1.controller("Ctrl1", [ "$http", function($http) {
         function(err) {}
     );
     ctrl.stamp2date = function(stamp) {
-        return new Date(stamp);
+        return new Date(stamp).toLocaleString();
     }
 }]);
