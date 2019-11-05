@@ -1,20 +1,21 @@
 /* external modules */
-var qs = require('query-string');
 var mongodb = require('mongodb');
 
 /* own modules */
 var lib = require('./lib');
 var common = require('./common');
 
-module.exports = function(url, req, rep, query, payload) {
+module.exports = function(url, req, rep, query, payload, session) {
 
-    console.log('REST handling ' + req.method + ' ' + url + ' query ' + JSON.stringify(query) + ' payload ' + JSON.stringify(payload));
+    console.log('REST handling ' + req.method + ' ' + url + ' query ' + JSON.stringify(query) + ' payload ' + JSON.stringify(payload) + ' session ' + session);
     switch(url) {
-
         case '/account':
+            if(!common.sessions[session].accountNo) {
+                lib.sendJSONWithError(rep, 401, 'You are not logged in'); return;
+            }
             switch(req.method) {
                 case 'GET':
-                    common.accounts.findOne({_id: mongodb.ObjectId(common.accountNo)}, {}, function(err, account) {
+                    common.accounts.findOne({_id: common.sessions[session].accountNo}, {}, function(err, account) {
                         if(err) {
                             lib.sendJSONWithError(rep, 400, 'No such object'); return;
                         }
@@ -23,7 +24,7 @@ module.exports = function(url, req, rep, query, payload) {
                     });
                     break;
                 case 'POST':
-                    common.accounts.findOne({_id: mongodb.ObjectId(common.accountNo)}, {}, function(err, account) {
+                    common.accounts.findOne({_id: common.sessions[session].accountNo}, {}, function(err, account) {
                         if(err) {
                             lib.sendJSONWithError(rep, 400, 'No such object'); return;
                         }                
@@ -37,7 +38,7 @@ module.exports = function(url, req, rep, query, payload) {
                         } else if(account.balance + multiplier * payload.amount < account.limit) {
                             lib.sendJSONWithError(rep, 400, 'Limit exceeded');
                         } else {
-                            common.accounts.findOneAndUpdate({_id: mongodb.ObjectId(common.accountNo)},
+                            common.accounts.findOneAndUpdate({_id: common.sessions[session].accountNo},
                                 {$set: {balance: account.balance + multiplier * payload.amount, lastOperation: new Date().getTime()}},
                                 {returnOriginal: false}, function(err, updateData) {
                                 if(err) {
@@ -45,7 +46,7 @@ module.exports = function(url, req, rep, query, payload) {
                                 }
                                 common.history.insertOne({
                                     date: updateData.value.lastOperation,
-                                    account: common.accountNo,
+                                    account: common.sessions[session].accountNo,
                                     operation: payload.operation,
                                     amount: payload.amount,
                                     balance: updateData.value.balance
@@ -61,12 +62,44 @@ module.exports = function(url, req, rep, query, payload) {
             }
             break;
         case '/history':
-            common.history.find().sort({date:1}).toArray(function(err, entries) {
+            if(!common.sessions[session].accountNo) {
+                lib.sendJSONWithError(rep, 401, 'You are not logged in'); return;    
+            }
+            common.history.find({account: common.sessions[session].accountNo}).sort({date: 1}).toArray(function(err, entries) {
                 if(err) {
                     lib.sendJSONWithError(rep, 400, 'History disabled'); return;    
                 }
                 lib.sendJSON(rep, entries);
             });
+            break;
+        case '/login':
+            switch(req.method) {
+                case 'GET':
+                    lib.sendJSON(rep, common.sessions[session]);
+                    break;
+                case 'POST':
+                    if(!payload || !payload.email || !payload.password) {
+                        lib.sendJSONWithError(rep, 401, 'Invalid credentials');
+                        return;
+                    }
+                    common.accounts.findOne(payload, {}, function(err, account) {
+                        if(err || !account) {
+                            lib.sendJSONWithError(rep, 401, 'Bad password');
+                            return;
+                        }
+                        common.sessions[session].accountNo = mongodb.ObjectId(account._id);
+                        common.sessions[session].email = account.email;
+                        lib.sendJSON(rep, account);
+                    });
+                    break;
+                case 'DELETE':
+                    delete common.sessions[session].accountNo;
+                    delete common.sessions[session].email;
+                    lib.sendJSON(rep, common.sessions[session]);
+                    break;
+                default:
+                    lib.sendJSONWithError(rep, 400, 'Invalid method ' + req.method + ' for ' + url);
+            }
             break;
         default:
             lib.sendJSONWithError(rep, 400, 'Invalid rest endpoint ' + url);

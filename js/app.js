@@ -1,38 +1,76 @@
 var app1 = angular.module("app1", []);
 
 app1.controller("Ctrl1", [ "$http", function($http) {
-    console.log("Kontroler 1");
     var ctrl = this;
-    ctrl.konto = {};
-    $http.get('/account').then(
-        function (rep) { ctrl.konto = rep.data; },
-        function (err) {}
+
+    ctrl.login = null;
+    ctrl.creds = {};
+    ctrl.account = {};
+
+    $http.get('/login').then(
+        function(rep) { ctrl.login = rep.data.email; },
+        function(err) {}
     );
-    ctrl.transakcja = { operation: "wi", amount: 0 };
+
+    ctrl.doLogin = function() {
+        $http.post('/login', ctrl.creds).then(
+            function(rep) { 
+                ctrl.login = rep.data.email;
+                refreshAccount();
+                refreshHistory()
+            },
+            function(err) { ctrl.message = err.data.error; }
+        );
+    };
+
+    ctrl.doLogout = function() {
+        $http.delete('/login').then(
+            function(rep) {
+                ctrl.login = null;
+                ctrl.account = {};
+                ctrl.history = [];
+                ctrl.transaction = { operation: "wi", amount: 0 },
+                ctrl.creds = {}
+            },
+            function(err) { ctrl.message = err.data.error; }
+        );
+    };
+
+    var refreshAccount = function() {
+        $http.get('/account').then(
+            function (rep) { ctrl.account = rep.data; },
+            function (err) {}
+        );
+    };
+    ctrl.transaction = { operation: "wi", amount: 0 };
     ctrl.message = '';
-    ctrl.robTransakcje = function() {
-        $http.post('/account', ctrl.transakcja).then(
+    ctrl.doTransfer = function() {
+        $http.post('/account', ctrl.transaction).then(
             function (rep) {
-                ctrl.konto = rep.data;
+                ctrl.account = rep.data;
                 ctrl.message = 'ok';
-                ctrl.historia.push({ date: ctrl.konto.lastOperation, operation: ctrl.transakcja.operation, amount: ctrl.transakcja.amount, balance: ctrl.konto.balance});
+                ctrl.history.push({ date: ctrl.account.lastOperation, operation: ctrl.transaction.operation, amount: ctrl.transaction.amount, balance: ctrl.account.balance});
             },
             function (err) { console.log(err); ctrl.message = err.data.error; }    
         );
     };
     ctrl.formInvalid = function() {
-        var mnoznik = 0;
-        switch(ctrl.transakcja.operation) {
-            case 'wi': mnoznik = -1; break;
-            case 'de': mnoznik = +1; break;
+        var multiplier = 0;
+        switch(ctrl.transaction.operation) {
+            case 'wi': multiplier = -1; break;
+            case 'de': multiplier = +1; break;
         }
-        return ctrl.transakcja.amount <= 0 || ctrl.konto.balance + mnoznik * ctrl.transakcja.amount < ctrl.konto.limit;
+        return ctrl.transaction.amount <= 0 || ctrl.account.balance + multiplier * ctrl.transaction.amount < ctrl.account.limit;
     };
-    $http.get('/history').then(
-        function(rep) { ctrl.historia = rep.data; },
-        function(err) {}
-    );
+    var refreshHistory = function() {
+        $http.get('/history').then(
+            function(rep) { ctrl.history = rep.data; },
+            function(err) {}
+        );
+    }
     ctrl.stamp2date = function(stamp) {
         return new Date(stamp).toLocaleString();
-    }
+    };
+    refreshAccount();
+    refreshHistory();
 }]);

@@ -26,22 +26,20 @@ try {
 /* HTTP server */
 var httpServer = http.createServer();
 
-var sessions = {};
-
 httpServer.on('request', function (req, rep) {
-    console.log('<<< ' + req.method + ' ' + req.url);
-
     var appCookies = new cookies(req, rep);
     var session = appCookies.get('session');
     var now = Date.now();
-    if(!session || !sessions[session]) {
+    if(!session || !common.sessions[session]) {
         session = uuid();
-        sessions[session] = { from: req.connection.remoteAddress, created: now, touched: now };
-        appCookies.set('session', session, { httpOnly: false });
+        common.sessions[session] = { from: req.connection.remoteAddress, created: now, touched: now };
     } else {
-        sessions[session].touched = now;
-        appCookies.set('session', session, { httpOnly: false });
+        common.sessions[session].from = req.connection.remoteAddress;
+        common.sessions[session].touched = now;    
     }
+    appCookies.set('session', session, { httpOnly: false });
+
+    console.log('<<< ' + req.method + ' ' + req.url + ' [' + session + ']');
 
     var parsedUrl = qs.parseUrl(req.url);
     if(req.method == 'POST' || req.method == 'PUT') {
@@ -50,7 +48,7 @@ httpServer.on('request', function (req, rep) {
             if(err) {
                 lib.sendJSONWithError(rep, 400, err.text);
             } else {
-                rest(parsedUrl.url, req, rep, parsedUrl.query, payload);
+                rest(parsedUrl.url, req, rep, parsedUrl.query, payload, session);
             }
         });
         return;
@@ -69,7 +67,7 @@ httpServer.on('request', function (req, rep) {
                 lib.serveStaticContent(rep, '.' + parsedUrl.url);
             } else {
                 /* not static content, try rest without payload */
-                rest(parsedUrl.url, req, rep, parsedUrl.query, null);
+                rest(parsedUrl.url, req, rep, parsedUrl.query, null, session);
             }
     }
 
