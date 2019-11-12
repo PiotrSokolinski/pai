@@ -49,7 +49,8 @@ module.exports = function(url, req, rep, query, payload, session) {
                                     account: common.sessions[session].accountNo,
                                     operation: payload.operation,
                                     amount: payload.amount,
-                                    balance: updateData.value.balance
+                                    balance: updateData.value.balance,
+                                    description: payload.description
                                 });
                                 delete updateData.value.password;
                                 lib.sendJSON(rep, updateData.value);    
@@ -62,15 +63,38 @@ module.exports = function(url, req, rep, query, payload, session) {
             }
             break;
         case '/history':
-            if(!common.sessions[session].accountNo) {
-                lib.sendJSONWithError(rep, 401, 'You are not logged in'); return;    
+            switch(req.method) {
+                case 'GET':
+                    if(!common.sessions[session].accountNo) {
+                        lib.sendJSONWithError(rep, 401, 'You are not logged in'); return;    
+                    }
+                    var skip = parseInt(query.skip);
+                    var limit = parseInt(query.limit);
+                    if(isNaN(skip) || isNaN(limit) || skip < 0 || limit <= 0) {
+                        lib.sendJSONWithError(rep, 400, 'Skip/limit errornous'); return;    
+                        return;
+                    }
+                    var q = {account: common.sessions[session].accountNo};
+                    if(query.filter) {
+                        q.description = {$regex: new RegExp(query.filter), $options: 'si'};
+                    }
+                    console.log('QUERY ' + JSON.stringify(q));
+                    common.history.find(q).sort({date: -1}).skip(skip).limit(limit).toArray(function(err, entries) {
+                        if(err) {
+                            lib.sendJSONWithError(rep, 400, 'History disabled'); return;    
+                        }
+                        lib.sendJSON(rep, entries);
+                    });
+                    break;
+                case 'DELETE':
+                    if(!common.sessions[session].accountNo) {
+                        lib.sendJSONWithError(rep, 401, 'You are not logged in'); return;    
+                    }
+                    common.history.count({account: common.sessions[session].accountNo}, {}, function(err, n) {
+                        lib.sendJSON(rep, {count: n});
+                    });
+                    break;
             }
-            common.history.find({account: common.sessions[session].accountNo}).sort({date: 1}).toArray(function(err, entries) {
-                if(err) {
-                    lib.sendJSONWithError(rep, 400, 'History disabled'); return;    
-                }
-                lib.sendJSON(rep, entries);
-            });
             break;
         case '/login':
             switch(req.method) {
