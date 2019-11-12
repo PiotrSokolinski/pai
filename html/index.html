@@ -16,10 +16,8 @@
     <div class="container">
 
         <div style="text-align: right;" ng-if="!ctrl.login">
-            <label for="email">Email</label>
-            <input id="email" type="text" class="form-inline" ng-model="ctrl.creds.email"/>
-            <label for="password">Hasło</label>
-            <input id="password" type="password" class="form-inline" ng-model="ctrl.creds.password"/>
+            <input placeholder="email" type="text" class="form-inline" ng-model="ctrl.creds.email"/>
+            <input placeholder="hasło" type="password" class="form-inline" ng-model="ctrl.creds.password"/>
             <button class="btn btn-primary" ng-click="ctrl.doLogin()">Login</button>
         </div>
 
@@ -67,7 +65,7 @@
                     <td style="text-align: right;" ng-bind="entry.balance"></td>
                 </tr>
             </table>
-            <button class="btn btn-primary" ng-click="ctrl.loadMore()" ng-disabled="ctrl.limit == ctrl.historyCount">Więcej</button>
+            <button class="btn btn-primary" ng-click="ctrl.loadMore()" ng-disabled="ctrl.history.length >= ctrl.historyCount">Więcej</button>
         </div>
 	</div>
     

@@ -2,9 +2,11 @@ var app1 = angular.module("app1", []);
 
 app1.controller("Ctrl1", [ "$http", function($http) {
     var ctrl = this;
+    
+    const defCreds = { email: 'jim@beam.com', password: 'admin1' };
 
     ctrl.login = null;
-    ctrl.creds = {};
+    ctrl.creds = defCreds;
     ctrl.account = {};
     ctrl.historyCount = 0;
     ctrl.limit = 5;
@@ -18,9 +20,10 @@ app1.controller("Ctrl1", [ "$http", function($http) {
     ctrl.doLogin = function() {
         $http.post('/login', ctrl.creds).then(
             function(rep) { 
+                ctrl.transaction = { operation: "wi", amount: 0, description: '' },
                 ctrl.login = rep.data.email;
-                refreshAccount();
-                ctrl.refreshHistory();
+                ctrl.message = 'Login ok';
+                refreshAll();
             },
             function(err) { ctrl.message = err.data.error; }
         );
@@ -30,10 +33,10 @@ app1.controller("Ctrl1", [ "$http", function($http) {
         $http.delete('/login').then(
             function(rep) {
                 ctrl.login = null;
-                ctrl.account = {};
-                ctrl.history = [];
-                ctrl.transaction = { operation: "wi", amount: 0 },
-                ctrl.creds = {}
+                ctrl.transaction = { operation: "wi", amount: 0, description: '' },
+                ctrl.creds = defCreds;
+                ctrl.message = 'Logout ok';
+                refreshAll();
             },
             function(err) { ctrl.message = err.data.error; }
         );
@@ -45,8 +48,10 @@ app1.controller("Ctrl1", [ "$http", function($http) {
             function (err) {}
         );
     };
+
     ctrl.transaction = { operation: "wi", amount: 0, description: "" };
     ctrl.message = '';
+    
     ctrl.doTransfer = function() {
         $http.post('/account', ctrl.transaction).then(
             function (rep) {
@@ -75,6 +80,11 @@ app1.controller("Ctrl1", [ "$http", function($http) {
             function(err) {}
         );
     };
+    var refreshAll = function() {
+        refreshAccount();
+        refreshHistoryCount();
+        ctrl.refreshHistory();
+    };
     ctrl.refreshHistory = function() {
         refreshHistoryCount();
         $http.get('/history?skip=0&limit=' + ctrl.limit + '&filter=' + ctrl.filter).then(
@@ -90,6 +100,7 @@ app1.controller("Ctrl1", [ "$http", function($http) {
         if(ctrl.limit > ctrl.historyCount) ctrl.limit = ctrl.historyCount;
         ctrl.refreshHistory();
     };
-    refreshAccount();
-    ctrl.refreshHistory();
+
+    refreshAll();
+
 }]);
