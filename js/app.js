@@ -1,6 +1,61 @@
-var app1 = angular.module("app1", []);
+var app = angular.module("app", ['ngRoute', 'ngAnimate', 'ui.bootstrap']);
 
-app1.controller("Ctrl1", [ "$http", function($http) {
+app.value('globals', {
+    alert: { text: "" }
+});
+
+app.constant('routes', [
+	{ route: '/', templateUrl: '/html/home.html', controller: 'Default', controllerAs: 'ctrl' },
+	{ route: '/1', templateUrl: '/html/1.html', controller: 'Ctrl1', controllerAs: 'ctrl' },
+	{ route: '/2', templateUrl: '/html/2.html', controller: 'Ctrl2', controllerAs: 'ctrl' },
+	{ route: '/3', templateUrl: '/html/3.html', controller: 'Ctrl3', controllerAs: 'ctrl' }
+]);
+
+app.config(['$routeProvider', '$locationProvider', 'routes', function($routeProvider, $locationProvider, routes) {
+    $locationProvider.hashPrefix('');
+	for(var i in routes) {
+		$routeProvider.when(routes[i].route, routes[i]);
+	}
+	$routeProvider.otherwise({ redirectTo: '/' });
+}]);
+
+app.service('common', [ '$uibModal', 'globals', function($uibModal, globals) {
+
+    this.confirm = function(confirmOptions, callback) {
+
+        var modalInstance = $uibModal.open({
+            animation: true,
+            ariaLabelledBy: 'modal-title-top',
+            ariaDescribedBy: 'modal-body-top',
+            templateUrl: '/html/confirm.html',
+            controller: 'Confirm',
+            controllerAs: 'ctrl',
+            resolve: {
+                confirmOptions: function () {
+                    return confirmOptions;
+                }
+            }
+        });
+        modalInstance.result.then(
+            function () { callback(true); },
+            function (ret) { callback(false); }
+        );
+    };
+
+    this.showMessage = function(msg) {
+        globals.alert.type = 'alert-success';
+        globals.alert.text = msg;
+    };
+
+    this.showError = function(msg) {
+        globals.alert.type = 'alert-danger';
+        globals.alert.text = msg;
+    };
+
+
+}]);
+
+app.controller("Ctrl", [ "$http", function($http) {
     var ctrl = this;
     
     const defCreds = { email: 'jim@beam.com', password: 'admin1' };
@@ -116,3 +171,7 @@ app1.controller("Ctrl1", [ "$http", function($http) {
     refreshAll();
 
 }]);
+
+app.controller("Default", function() {
+    console.log('Default');
+});

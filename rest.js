@@ -78,7 +78,6 @@ module.exports = function(url, req, rep, query, payload, session) {
                     if(query.filter) {
                         q.description = {$regex: new RegExp(query.filter), $options: 'si'};
                     }
-                    console.log('QUERY ' + JSON.stringify(q));
                     common.history.find(q).sort({date: -1}).skip(skip).limit(limit).toArray(function(err, entries) {
                         if(err) {
                             lib.sendJSONWithError(rep, 400, 'History disabled'); return;    

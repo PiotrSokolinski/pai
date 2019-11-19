@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html ng-app="app1">
+<html ng-app="app">
 
 <head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta charset="utf-8">
@@ -11,9 +11,16 @@
     <script src="/js/bootstrap.min.js"></script>
 </head>
     
-<body class="workarea" ng-controller="Ctrl1 as ctrl">
+<body class="workarea" ng-controller="Ctrl as ctrl">
     
     <div class="container">
+
+        <a href="#/">Home</a>
+        <a href="#/1">1</a>
+        <a href="#/2">2</a>
+        <a href="#/3">3</a>
+
+        <div ng-view></div>
 
         <div style="text-align: right;" ng-if="!ctrl.login">
             <input placeholder="email" type="text" class="form-inline" ng-model="ctrl.creds.email"/>
@@ -71,7 +78,15 @@
     
 <script src="/js/angular.min.js"></script>
 <script src="/js/ui-bootstrap-tpls.min.js"></script>
+<script src="/js/angular-sanitize.min.js"></script>
+<script src="/js/angular-route.min.js"></script>
+<script src="/js/angular-animate.min.js"></script>
+<script src="/js/ui-bootstrap-tpls.min.js"></script>
 
 <script src="/js/app.js"></script>
+<script src="/js/confirm.js"></script>
+<script src="/js/ctrl1.js"></script>
+<script src="/js/ctrl2.js"></script>
+<script src="/js/ctrl3.js"></script>
 
 </body></html>
