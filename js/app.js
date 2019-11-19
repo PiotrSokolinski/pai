@@ -1,4 +1,4 @@
-var app = angular.module("app", ['ngRoute', 'ngAnimate', 'ui.bootstrap']);
+var app = angular.module("app", ['ngSanitize', 'ngRoute', 'ngAnimate', 'ui.bootstrap']);
 
 app.value('globals', {
     alert: { text: "" }
