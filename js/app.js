@@ -1,7 +1,8 @@
 var app = angular.module("app", ['ngSanitize', 'ngRoute', 'ngAnimate', 'ui.bootstrap']);
 
 app.value('globals', {
-    email: ''
+    email: '',
+    alert: { text: '', type: '' }
 });
 
 app.constant('routes', [
@@ -44,6 +45,7 @@ app.controller("loginDialog", [ '$http', '$uibModalInstance', function($http, $u
 app.controller('Menu', ['$http', '$scope', '$location', '$uibModal', 'routes', 'globals', 'common',
 	function($http, $scope, $location, $uibModal, routes, globals, common) {
         var ctrl = this;
+        ctrl.alert = globals.alert;
         ctrl.menu = [];
 
         var refreshMenu = function() {
@@ -107,6 +109,8 @@ app.controller('Menu', ['$http', '$scope', '$location', '$uibModal', 'routes', '
                         $location.path('/');
                     });
             }};
+
+        ctrl.closeAlert = function() { ctrl.alert.text = ""; };
 }]);
 
 app.service('common', [ '$uibModal', 'globals', function($uibModal, globals) {
@@ -132,4 +136,15 @@ app.service('common', [ '$uibModal', 'globals', function($uibModal, globals) {
             function (ret) { callback(false); }
         );
     };
+
+    this.showMessage = function(msg) {
+        globals.alert.type = 'alert-success';
+        globals.alert.text = msg;
+    };
+
+    this.showError = function(msg) {
+        globals.alert.type = 'alert-danger';
+        globals.alert.text = msg;
+    };
+
 }]);

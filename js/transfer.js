@@ -1,4 +1,4 @@
-app.controller("Transfer", [ '$http', function($http) {
+app.controller("Transfer", [ '$http', 'common', function($http, common) {
     var ctrl = this;
     
     var initVars = function() {
@@ -19,8 +19,11 @@ app.controller("Transfer", [ '$http', function($http) {
         $http.post('/account', ctrl.transaction).then(
             function (rep) {
                 ctrl.account = rep.data;
+                common.showMessage('Przelew udany');
             },
-            function (err) {}
+            function (err) {
+                common.showError('Przelew nieudany');
+            }
         );
     };
 
