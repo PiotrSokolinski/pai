@@ -1,14 +1,14 @@
 var app = angular.module("app", ['ngSanitize', 'ngRoute', 'ngAnimate', 'ui.bootstrap']);
 
 app.value('globals', {
-    alert: { text: "" }
+    alert: { text: "" },
+    email: ''
 });
 
 app.constant('routes', [
-	{ route: '/', templateUrl: '/html/home.html', controller: 'Default', controllerAs: 'ctrl' },
-	{ route: '/1', templateUrl: '/html/1.html', controller: 'Ctrl1', controllerAs: 'ctrl' },
-	{ route: '/2', templateUrl: '/html/2.html', controller: 'Ctrl2', controllerAs: 'ctrl' },
-	{ route: '/3', templateUrl: '/html/3.html', controller: 'Ctrl3', controllerAs: 'ctrl' }
+	{ route: '/', templateUrl: '/html/home.html', controller: 'Home', controllerAs: 'ctrl', menu: '<i class="fa fa-lg fa-home"></i>', guest: true },
+	{ route: '/transfer', templateUrl: '/html/transfer.html', controller: 'Transfer', controllerAs: 'ctrl', menu: 'Przelew' },
+	{ route: '/history', templateUrl: '/html/history.html', controller: 'History', controllerAs: 'ctrl', menu: 'Historia' }
 ]);
 
 app.config(['$routeProvider', '$locationProvider', 'routes', function($routeProvider, $locationProvider, routes) {
@@ -18,6 +18,106 @@ app.config(['$routeProvider', '$locationProvider', 'routes', function($routeProv
 	}
 	$routeProvider.otherwise({ redirectTo: '/' });
 }]);
+
+app.controller("loginDialog", [ '$http', '$uibModalInstance', 'globals', 'common', function($http, $uibModalInstance, globals, common) {
+    var ctrl = this;
+    // dla szybszego logowania :)
+    ctrl.creds = { email: 'jim@beam.com', password: 'admin1' };
+
+    ctrl.login = function() {
+        $http.post('/login', ctrl.creds).then(
+            function(rep) {
+                globals.email = rep.data.email;
+                $uibModalInstance.close();
+            },
+            function(err) {}
+        );
+    };
+
+    ctrl.cancel = function () {
+        $uibModalInstance.dismiss('cancel');
+    };
+
+}]);
+
+app.controller('Menu', ['$http', '$scope', '$location', '$uibModal', 'routes', 'globals', 'common',
+	function($http, $scope, $location, $uibModal, routes, globals, common) {
+        var ctrl = this;
+        ctrl.menu = [];
+
+        var refresh = function() {
+            ctrl.menu = [];
+            for (var i in routes) {
+                if(routes[i].guest || globals.email) {
+                    ctrl.menu.push({route: routes[i].route, title: routes[i].menu});
+                }
+            }
+        };
+
+        $http.get('/login').then(
+            function(rep) { 
+                globals.email = rep.data.email;
+                refresh();
+            },
+            function(err) { globals.email = null; }
+        );
+
+		// $scope.$on('sessionData', function () {
+		// });
+
+        ctrl.isCollapsed = true;
+
+        $scope.$on('$routeChangeSuccess', function () {
+            ctrl.isCollapsed = true;
+        });
+
+		ctrl.navClass = function(page) {
+			return page === $location.path() ? 'active' : '';
+		}
+
+		ctrl.loginIcon = function() {
+			return globals.email ? globals.email + '&nbsp;<span class="fa fa-lg fa-sign-out"></span>' : '<span class="fa fa-lg fa-sign-in"></span>';
+		}
+
+        ctrl.login = function() {
+            if(globals.email) {
+                common.confirm({ title: 'Koniec pracy?', body: 'Chcesz wylogować ' + globals.email + '?' }, function(answer) {
+                    if(answer) {    
+                        $http.delete('/login').then(
+                            function(rep) {
+                                globals.email = null;
+                                refresh();
+                            },
+                            function(err) {}
+                        );
+                    }
+                });    
+            } else {
+                var modalInstance = $uibModal.open({
+                    animation: true,
+                    ariaLabelledBy: 'modal-title-top',
+                    ariaDescribedBy: 'modal-body-top',
+                    templateUrl: '/html/loginDialog.html',
+                    controller: 'loginDialog',
+                    controllerAs: 'ctrl'
+                });
+                modalInstance.result.then(
+                    function () {
+                        $http.post('/login', { email: 'jim@beam.com', password: 'admin1' }).then(
+                            function(rep) { 
+                                globals.email = rep.data.email;
+                                refresh();
+                            },
+                            function(err) {}
+                        );        
+                    },
+                    function () {}
+                );
+            }
+        };
+
+    }
+]);
 
 app.service('common', [ '$uibModal', 'globals', function($uibModal, globals) {
 
@@ -41,17 +141,6 @@ app.service('common', [ '$uibModal', 'globals', function($uibModal, globals) {
             function (ret) { callback(false); }
         );
     };
-
-    this.showMessage = function(msg) {
-        globals.alert.type = 'alert-success';
-        globals.alert.text = msg;
-    };
-
-    this.showError = function(msg) {
-        globals.alert.type = 'alert-danger';
-        globals.alert.text = msg;
-    };
-
 
 }]);
 
@@ -171,7 +260,3 @@ app.controller("Ctrl", [ "$http", function($http) {
     refreshAll();
 
 }]);
-
-app.controller("Default", function() {
-    console.log('Default');
-});
