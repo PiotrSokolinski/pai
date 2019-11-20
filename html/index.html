@@ -11,7 +11,7 @@
     <script src="/js/bootstrap.min.js"></script>
 </head>
     
-<body class="workarea" ng-controller="Ctrl as ctrl">
+<body class="workarea">
     
     <div class="container">
 
@@ -46,57 +46,6 @@
 	
         <div ng-view></div>
 
-        <div style="text-align: right;" ng-if="!ctrl.login">
-            <input placeholder="email" type="text" class="form-inline" ng-model="ctrl.creds.email"/>
-            <input placeholder="hasło" type="password" class="form-inline" ng-model="ctrl.creds.password"/>
-            <button class="btn btn-primary" ng-click="ctrl.doLogin()">Login</button>
-        </div>
-
-        <div style="text-align: right;" ng-if="ctrl.login">
-            <span ng-bind="ctrl.login"></span>
-            <button class="btn btn-primary" ng-click="ctrl.doLogout()">Logout</button>
-        </div>
-
-        <div ng-if="ctrl.login">
-            <h1>Konto</h1>
-        
-            <h3>Saldo <span ng-bind="ctrl.account.balance"></span></h3>
-            <p>Limit <span ng-bind="ctrl.account.limit"></span></p>
-            
-            <p>Operacja
-                <select class="form-inline" ng-model="ctrl.transaction.operation">
-                    <option value="wi">Wypłata</option>
-                    <option value="de">Wpłata</option>
-                </select>
-                <input class="form-inline" type="number" ng-model="ctrl.transaction.amount"/>
-                <input class="form-inline" type="text" placeholder="Opis" ng-model="ctrl.transaction.description"/>
-                <button class="btn btn-primary" ng-click="ctrl.doTransfer()" ng-disabled="ctrl.formInvalid()">Zrób</button>
-            </p>
-
-            <p>Ostatni komunikat z serwera
-                <span class="badge" ng-bind="ctrl.message"></span>
-            </p>
-
-            <h4>Historia</h4>
-            Rekordów <span ng-bind="ctrl.history.length"></span> / <span ng-bind="ctrl.historyCount"></span>
-            <input class="form-inline" type="text" placeholder="Filtruj" ng-model="ctrl.filter" ng-change="ctrl.refreshHistory()"/>
-            <table class="table table-hover">
-                <tr>
-                    <th>Data</th>
-                    <th style="text-align: center;">Operacja</th>
-                    <th style="text-align: right;">Kwota</th>
-                    <th style="text-align: left;">Opis</th>
-                    <th style="text-align: right;">Saldo po</th>
-                </tr>
-                <tr ng-repeat="entry in ctrl.history">
-                    <td ng-bind="ctrl.stamp2date(entry.date)"></td>
-                    <td style="text-align: center;" ng-bind="entry.operation"></td>
-                    <td style="text-align: right;" ng-bind="entry.amount"></td>
-                    <td style="text-align: left;" ng-bind="entry.description"></td>
-                    <td style="text-align: right;" ng-bind="entry.balance"></td>
-                </tr>
-            </table>
-            <button class="btn btn-primary" ng-click="ctrl.loadMore()" ng-disabled="ctrl.history.length >= ctrl.historyCount">Więcej</button>
         </div>
 	</div>
     

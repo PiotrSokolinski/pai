@@ -1,7 +1,6 @@
 var app = angular.module("app", ['ngSanitize', 'ngRoute', 'ngAnimate', 'ui.bootstrap']);
 
 app.value('globals', {
-    alert: { text: "" },
     email: ''
 });
 
@@ -19,22 +18,24 @@ app.config(['$routeProvider', '$locationProvider', 'routes', function($routeProv
 	$routeProvider.otherwise({ redirectTo: '/' });
 }]);
 
-app.controller("loginDialog", [ '$http', '$uibModalInstance', 'globals', 'common', function($http, $uibModalInstance, globals, common) {
+app.controller("loginDialog", [ '$http', '$uibModalInstance', function($http, $uibModalInstance) {
     var ctrl = this;
-    // dla szybszego logowania :)
+    // devel: dla szybszego logowania
     ctrl.creds = { email: 'jim@beam.com', password: 'admin1' };
+    ctrl.loginError = false;
 
-    ctrl.login = function() {
+    ctrl.tryLogin = function() {
         $http.post('/login', ctrl.creds).then(
             function(rep) {
-                globals.email = rep.data.email;
-                $uibModalInstance.close();
+                $uibModalInstance.close(rep.data.email);
             },
-            function(err) {}
+            function(err) {
+                ctrl.loginError = true;
+            }
         );
     };
 
-    ctrl.cancel = function () {
+    ctrl.cancel = function() {
         $uibModalInstance.dismiss('cancel');
     };
 
@@ -45,7 +46,7 @@ app.controller('Menu', ['$http', '$scope', '$location', '$uibModal', 'routes', '
         var ctrl = this;
         ctrl.menu = [];
 
-        var refresh = function() {
+        var refreshMenu = function() {
             ctrl.menu = [];
             for (var i in routes) {
                 if(routes[i].guest || globals.email) {
@@ -57,13 +58,10 @@ app.controller('Menu', ['$http', '$scope', '$location', '$uibModal', 'routes', '
         $http.get('/login').then(
             function(rep) { 
                 globals.email = rep.data.email;
-                refresh();
+                refreshMenu();
             },
             function(err) { globals.email = null; }
         );
-
-		// $scope.$on('sessionData', function () {
-		// });
 
         ctrl.isCollapsed = true;
 
@@ -86,7 +84,8 @@ app.controller('Menu', ['$http', '$scope', '$location', '$uibModal', 'routes', '
                         $http.delete('/login').then(
                             function(rep) {
                                 globals.email = null;
-                                refresh();
+                                refreshMenu();
+                                $location.path('/');
                             },
                             function(err) {}
                         );
@@ -102,22 +101,13 @@ app.controller('Menu', ['$http', '$scope', '$location', '$uibModal', 'routes', '
                     controllerAs: 'ctrl'
                 });
                 modalInstance.result.then(
-                    function () {
-                        $http.post('/login', { email: 'jim@beam.com', password: 'admin1' }).then(
-                            function(rep) { 
-                                globals.email = rep.data.email;
-                                refresh();
-                            },
-                            function(err) {}
-                        );        
-                    },
-                    function () {}
-                );
-            }
-        };
-
-    }
-]);
+                    function(data) {
+                        globals.email = data;
+                        refreshMenu();
+                        $location.path('/');
+                    });
+            }};
+}]);
 
 app.service('common', [ '$uibModal', 'globals', function($uibModal, globals) {
 
@@ -136,127 +126,10 @@ app.service('common', [ '$uibModal', 'globals', function($uibModal, globals) {
                 }
             }
         });
+
         modalInstance.result.then(
             function () { callback(true); },
             function (ret) { callback(false); }
         );
     };
-
-}]);
-
-app.controller("Ctrl", [ "$http", function($http) {
-    var ctrl = this;
-    
-    const defCreds = { email: 'jim@beam.com', password: 'admin1' };
-
-    var initVars = function() {
-        ctrl.login = null;
-        ctrl.creds = defCreds;
-        ctrl.account = {};
-        ctrl.historyCount = 0;
-        ctrl.limit = 5;
-        ctrl.filter = '';
-        ctrl.transaction = { operation: "wi", amount: 0, description: "" };
-        ctrl.message = '';
-        $http.get('/login').then(
-            function(rep) { ctrl.login = rep.data.email; },
-            function(err) {}
-        );
-    };
-
-    initVars();
-
-    ctrl.doLogin = function() {
-        $http.post('/login', ctrl.creds).then(
-            function(rep) { 
-                ctrl.transaction = { operation: "wi", amount: 0, description: '' },
-                ctrl.login = rep.data.email;
-                ctrl.message = 'Login ok';
-                refreshAll();
-            },
-            function(err) { ctrl.message = err.data.error; }
-        );
-    };
-
-    ctrl.doLogout = function() {
-        $http.delete('/login').then(
-            function(rep) {
-                initVars();
-                ctrl.message = 'Logout ok';
-                refreshAll();
-            },
-            function(err) { ctrl.message = err.data.error; }
-        );
-    };
-
-    var refreshAccount = function() {
-        $http.get('/account').then(
-            function (rep) { ctrl.account = rep.data; },
-            function (err) {}
-        );
-    };
-
-    ctrl.doTransfer = function() {
-        $http.post('/account', ctrl.transaction).then(
-            function (rep) {
-                ctrl.account = rep.data;
-                ctrl.message = 'ok';
-                if(ctrl.history.length >= ctrl.limit) {
-                    ctrl.history.pop();
-                }
-                ctrl.history.unshift({
-                    date: ctrl.account.lastOperation,
-                    operation: ctrl.transaction.operation,
-                    amount: ctrl.transaction.amount,
-                    description: ctrl.transaction.description,
-                    balance: ctrl.account.balance
-                });
-                refreshHistoryCount();
-            },
-            function (err) { console.log(err); ctrl.message = err.data.error; }    
-        );
-    };
-
-    ctrl.formInvalid = function() {
-        var multiplier = 0;
-        switch(ctrl.transaction.operation) {
-            case 'wi': multiplier = -1; break;
-            case 'de': multiplier = +1; break;
-        }
-        return ctrl.transaction.amount <= 0 || ctrl.account.balance + multiplier * ctrl.transaction.amount < ctrl.account.limit;
-    };
-
-    var refreshHistoryCount = function() {
-        $http.delete('/history').then(
-            function(rep) { ctrl.historyCount = rep.data.count; },
-            function(err) {}
-        );
-    };
-
-    var refreshAll = function() {
-        refreshAccount();
-        refreshHistoryCount();
-        ctrl.refreshHistory();
-    };
-
-    ctrl.refreshHistory = function() {
-        refreshHistoryCount();
-        $http.get('/history?skip=0&limit=' + ctrl.limit + '&filter=' + ctrl.filter).then(
-            function(rep) { ctrl.history = rep.data; },
-            function(err) {}
-        );
-    };
-
-    ctrl.stamp2date = function(stamp) {
-        return new Date(stamp).toLocaleString();
-    };
-    
-    ctrl.loadMore = function() {
-        ctrl.limit += 5;
-        if(ctrl.limit > ctrl.historyCount) ctrl.limit = ctrl.historyCount;
-        ctrl.refreshHistory();
-    };
-
-    refreshAll();
-
 }]);
