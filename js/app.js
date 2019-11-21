@@ -1,10 +1,11 @@
 var app = angular.module("app", ['ngSanitize', 'ngRoute', 'ngAnimate', 'ui.bootstrap']);
 
+// zmienne globalne
 app.value('globals', {
-    email: '',
-    alert: { text: '', type: '' }
+    email: ''
 });
 
+// nowe podstrony i ich kontrolery
 app.constant('routes', [
 	{ route: '/', templateUrl: '/html/home.html', controller: 'Home', controllerAs: 'ctrl', menu: '<i class="fa fa-lg fa-home"></i>', guest: true },
 	{ route: '/transfer', templateUrl: '/html/transfer.html', controller: 'Transfer', controllerAs: 'ctrl', menu: 'Przelew' },
@@ -45,7 +46,8 @@ app.controller("loginDialog", [ '$http', '$uibModalInstance', function($http, $u
 app.controller('Menu', ['$http', '$scope', '$location', '$uibModal', 'routes', 'globals', 'common',
 	function($http, $scope, $location, $uibModal, routes, globals, common) {
         var ctrl = this;
-        ctrl.alert = globals.alert;
+
+        ctrl.alert = common.alert;
         ctrl.menu = [];
 
         var refreshMenu = function() {
@@ -113,6 +115,11 @@ app.controller('Menu', ['$http', '$scope', '$location', '$uibModal', 'routes', '
         ctrl.closeAlert = function() { ctrl.alert.text = ""; };
 }]);
 
+/*
+    common.confirm( { title: title, body: body, noOk: false, noCancel: false } , function(answer) { ... } )
+    common.showMessage( message )
+    common.showError( message )
+*/
 app.service('common', [ '$uibModal', 'globals', function($uibModal, globals) {
 
     this.confirm = function(confirmOptions, callback) {
@@ -137,14 +144,16 @@ app.service('common', [ '$uibModal', 'globals', function($uibModal, globals) {
         );
     };
 
+    this.alert = { text: '', type: '' };
+    
     this.showMessage = function(msg) {
-        globals.alert.type = 'alert-success';
-        globals.alert.text = msg;
+        this.alert.type = 'alert-success';
+        this.alert.text = msg;
     };
 
     this.showError = function(msg) {
-        globals.alert.type = 'alert-danger';
-        globals.alert.text = msg;
+        this.alert.type = 'alert-danger';
+        this.alert.text = msg;
     };
 
 }]);
