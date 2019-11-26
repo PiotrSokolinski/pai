@@ -3,7 +3,8 @@ app.controller("Transfer", [ '$http', 'common', function($http, common) {
     
     var initVars = function() {
         ctrl.account = {};
-        ctrl.transaction = { operation: "wi", amount: 0, description: "" };
+        ctrl.emails = [];
+        ctrl.transaction = { recipient: "", amount: 0, description: "" };
     };
 
     initVars();
@@ -28,13 +29,12 @@ app.controller("Transfer", [ '$http', 'common', function($http, common) {
     };
 
     ctrl.formInvalid = function() {
-        var multiplier = 0;
-        switch(ctrl.transaction.operation) {
-            case 'wi': multiplier = -1; break;
-            case 'de': multiplier = +1; break;
-        }
-        return ctrl.transaction.amount <= 0 || ctrl.account.balance + multiplier * ctrl.transaction.amount < ctrl.account.limit;
+        return ctrl.transaction.amount <= 0 || ctrl.account.balance - ctrl.transaction.amount < ctrl.account.limit;
     };
 
     refreshAccount();
+
+    $http.get('/emails').then(function(rep) {
+        ctrl.emails = rep.data;
+    }, function(err) {});
 }]);

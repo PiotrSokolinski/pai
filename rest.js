@@ -28,38 +28,53 @@ module.exports = function(url, req, rep, query, payload, session) {
                         if(err) {
                             lib.sendJSONWithError(rep, 400, 'No such object'); return;
                         }                
-                        var multiplier = 0;
-                        switch(payload.operation) {
-                            case 'wi': multiplier = -1; break;
-                            case 'de': multiplier = +1; break;
-                        }
-                        if(multiplier == 0 || isNaN(payload.amount) || payload.amount <= 0) {
+                        if(isNaN(payload.amount) || payload.amount <= 0) {
                             lib.sendJSONWithError(rep, 400, 'Invalid operation data');
-                        } else if(account.balance + multiplier * payload.amount < account.limit) {
+                        } else if(account.balance - payload.amount < account.limit) {
                             lib.sendJSONWithError(rep, 400, 'Limit exceeded');
                         } else {
-                            common.accounts.findOneAndUpdate({_id: common.sessions[session].accountNo},
-                                {$set: {balance: account.balance + multiplier * payload.amount, lastOperation: new Date().getTime()}},
-                                {returnOriginal: false}, function(err, updateData) {
-                                if(err) {
-                                    lib.sendJSONWithError(rep, 400, 'Update failed'); return;
+                            common.accounts.find({email: payload.recipient}).toArray(function(err, docs) {
+                                if(err || docs.length != 1) {
+                                    lib.sendJSONWithError(rep, 400, 'Recipient unknown or ambiguous');
+                                    return;
                                 }
-                                common.history.insertOne({
-                                    date: updateData.value.lastOperation,
-                                    account: common.sessions[session].accountNo,
-                                    operation: payload.operation,
-                                    amount: payload.amount,
-                                    balance: updateData.value.balance,
-                                    description: payload.description
+                                var recipient_id = docs[0]._id;
+                                common.accounts.findOneAndUpdate({_id: common.sessions[session].accountNo},
+                                    {$set: {balance: account.balance - payload.amount, lastOperation: new Date().getTime()}},
+                                    {returnOriginal: false}, function(err, updateData) {
+                                    if(err) {
+                                        lib.sendJSONWithError(rep, 400, 'Update failed'); return;
+                                    }
+                                    common.accounts.findOneAndUpdate({_id: recipient_id},
+                                        {$inc: {balance: payload.amount, lastOperation: new Date().getTime()}},
+                                        {returnOriginal: false});
+                                    common.history.insertOne({
+                                        date: updateData.value.lastOperation,
+                                        account: common.sessions[session].accountNo,
+                                        recipient_id: recipient_id,
+                                        amount: payload.amount,
+                                        balance: updateData.value.balance,
+                                        description: payload.description
+                                    });
+                                    delete updateData.value.password;
+                                    lib.sendJSON(rep, updateData.value);    
                                 });
-                                delete updateData.value.password;
-                                lib.sendJSON(rep, updateData.value);    
                             });
                         }
                     });
                     break;
                 default:
                     lib.sendJSONWithError(rep, 400, 'Invalid method ' + req.method + ' for ' + url);
+            }
+            break;
+        case '/emails':
+            switch(req.method) {
+                case 'GET':
+                    common.accounts.find({}).sort({email:1}).toArray(function(err, docs) {
+                        lib.sendJSON(rep, docs.map(function(el) { return el.email; } ));
+                    });
+                    break;
+                default: lib.sendJSONWithError(rep, 400, 'Invalid method ' + req.method + ' for ' + url);
             }
             break;
         case '/history':
@@ -78,7 +93,11 @@ module.exports = function(url, req, rep, query, payload, session) {
                     if(query.filter) {
                         q.description = {$regex: new RegExp(query.filter), $options: 'si'};
                     }
-                    common.history.find(q).sort({date: -1}).skip(skip).limit(limit).toArray(function(err, entries) {
+                    //common.history.find(q).sort({date: -1}).skip(skip).limit(limit).toArray(function(err, entries) {
+                    common.history.aggregate([
+                        {$lookup:{from:'accounts',localField:'recipient_id',foreignField:'_id',as:'recipient'}},
+                        {$unwind:{path:'$recipient'}}
+                    ]).toArray(function(err, entries) {
                         if(err) {
                             lib.sendJSONWithError(rep, 400, 'History disabled'); return;    
                         }

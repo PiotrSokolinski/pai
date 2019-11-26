@@ -1,11 +1,11 @@
 <h3>Saldo <span ng-bind="ctrl.account.balance"></span></h3>
 <p>Limit <span ng-bind="ctrl.account.limit"></span></p>
 
-<p>Operacja
-    <select class="form-inline" ng-model="ctrl.transaction.operation">
-        <option value="wi">Wypłata</option>
-        <option value="de">Wpłata</option>
-    </select>
+<p>Przelew
+    <input type="text" list="recipients" class="form-inline" ng-model="ctrl.transaction.recipient">
+    <datalist id="recipients">
+        <option ng-repeat="recipient in ctrl.emails">{{recipient}}</option>
+    </datalist>
     <input class="form-inline" type="number" ng-model="ctrl.transaction.amount"/>
     <input class="form-inline" type="text" placeholder="Opis" ng-model="ctrl.transaction.description"/>
     <button class="btn btn-primary" ng-click="ctrl.doTransfer()" ng-disabled="ctrl.formInvalid()">Zrób</button>
