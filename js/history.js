@@ -9,21 +9,14 @@ app.controller("History", [ '$http', function($http) {
 
     initVars();
 
-    var refreshHistoryCount = function() {
+    ctrl.refreshHistory = function() {
         $http.delete('/history').then(
             function(rep) { ctrl.historyCount = rep.data.count; },
             function(err) {}
         );
-    };
-
-    var refreshAll = function() {
-        refreshHistoryCount();
-        ctrl.refreshHistory();
-    };
-
-    ctrl.refreshHistory = function() {
-        refreshHistoryCount();
-        $http.get('/history?skip=0&limit=' + ctrl.limit + '&filter=' + ctrl.filter).then(
+        var limit = ctrl.limit;
+        if(limit <= 0) limit = 1;
+        $http.get('/history?skip=0&limit=' + limit + '&filter=' + ctrl.filter).then(
             function(rep) { ctrl.history = rep.data; },
             function(err) {}
         );
@@ -33,11 +26,5 @@ app.controller("History", [ '$http', function($http) {
         return new Date(stamp).toLocaleString();
     };
     
-    ctrl.loadMore = function() {
-        ctrl.limit += 5;
-        if(ctrl.limit > ctrl.historyCount) ctrl.limit = ctrl.historyCount;
-        ctrl.refreshHistory();
-    };
-
-    refreshAll();
+    ctrl.refreshHistory();
 }]);

@@ -70,8 +70,16 @@ module.exports = function(url, req, rep, query, payload, session) {
         case '/emails':
             switch(req.method) {
                 case 'GET':
-                    common.accounts.find({}).sort({email:1}).toArray(function(err, docs) {
-                        lib.sendJSON(rep, docs.map(function(el) { return el.email; } ));
+                    common.history.aggregate([
+                        {$match:{account: common.sessions[session].accountNo}},
+                        {$group:{_id:'$recipient_id'}},
+                        {$lookup:{from:'accounts','localField':'_id','foreignField':'_id','as':'recipient'}},
+                        {$unwind:'$recipient'},
+                        {$addFields:{email:'$recipient.email'}},
+                        {$project:{_id:false,recipient:false}},
+                        {$sort:{email:1}}
+                    ]).toArray(function(err, docs) {
+                        lib.sendJSON(rep, docs.map(function(el) { return el.email; }));
                     });
                     break;
                 default: lib.sendJSONWithError(rep, 400, 'Invalid method ' + req.method + ' for ' + url);
@@ -93,23 +101,34 @@ module.exports = function(url, req, rep, query, payload, session) {
                     if(query.filter) {
                         q.description = {$regex: new RegExp(query.filter), $options: 'si'};
                     }
-                    //common.history.find(q).sort({date: -1}).skip(skip).limit(limit).toArray(function(err, entries) {
                     common.history.aggregate([
+                        {$match:q},
                         {$lookup:{from:'accounts',localField:'recipient_id',foreignField:'_id',as:'recipient'}},
-                        {$unwind:{path:'$recipient'}}
+                        {$unwind:{path:'$recipient'}},
+                        {$addFields:{email:'$recipient.email'}},
+                        {$project:{account:false,recipient:false}},
+                        {$sort:{date:-1}},{$skip:skip},{$limit:limit}
                     ]).toArray(function(err, entries) {
-                        if(err) {
-                            lib.sendJSONWithError(rep, 400, 'History disabled'); return;    
-                        }
-                        lib.sendJSON(rep, entries);
+                        if(err)
+                            lib.sendJSONWithError(rep, 400, 'History retrieving failed');    
+                        else
+                            lib.sendJSON(rep, entries);
                     });
                     break;
                 case 'DELETE':
                     if(!common.sessions[session].accountNo) {
                         lib.sendJSONWithError(rep, 401, 'You are not logged in'); return;    
                     }
-                    common.history.count({account: common.sessions[session].accountNo}, {}, function(err, n) {
-                        lib.sendJSON(rep, {count: n});
+                    common.history.aggregate([
+                        {$match:{account: common.sessions[session].accountNo}},
+                        {$lookup:{from:'accounts',localField:'recipient_id',foreignField:'_id',as:'recipient'}},
+                        {$unwind:{path:'$recipient'}},
+                        {$count:'count'}
+                    ]).toArray(function(err, docs) {
+                        if(err || docs.length != 1)
+                            lib.sendJSONWithError(rep, 400, 'Cannot count objects in history'); 
+                        else
+                            lib.sendJSON(rep, docs[0]);
                     });
                     break;
             }
