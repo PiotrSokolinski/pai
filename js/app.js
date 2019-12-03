@@ -62,10 +62,22 @@ app.controller('Menu', ['$http', '$scope', '$location', '$uibModal', '$websocket
         $http.get('/login').then(
             function(rep) { 
                 globals.email = rep.data.email;
-                console.log('WebSocket initialization');
-                var dataStream = $websocket('ws://' + window.location.host);
-                dataStream.send(rep.data.accountNo);
                 refreshMenu();
+
+                try {
+                    var dataStream = $websocket('ws://' + window.location.host);
+                    dataStream.onMessage(function(rep) {
+                        try {
+                            var message = JSON.parse(rep.data);
+                            common.showMessage(message.operation);
+                        } catch(ex) {
+                            console.error('Data from websocket cannot be parsed: ' + rep.data);
+                        }
+                    });
+                    dataStream.send(JSON.stringify({action: 'init', session: rep.data.session}));
+                } catch(ex) {
+                    console.error('Initialization of websocket communication failed');
+                }
             },
             function(err) { globals.email = null; }
         );

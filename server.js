@@ -77,8 +77,24 @@ httpServer.on('request', function (req, rep) {
 common.ws = new WebSocket.Server({ server: httpServer });
 
 common.ws.on('connection', function connection(conn) {
-	conn.on('message', function(message) {
-		console.log('Received from webSocket: ' + message);		
+	conn.on('message', function(data) {
+        console.log('<<< retrieving data from websocket: ' + data);
+        try {
+            var message = JSON.parse(data);
+            switch(message.action) {
+                case 'init':
+                    if(message.session && common.sessions[message.session]) {
+                        console.log('Session ids consistent, websocket initialization for session ' + message.session);
+                        common.sessions[message.session].ws = conn;
+                        conn.session = message.session;
+                    }
+                    break;
+                default:
+                    console.log('Unknown action sent from websocket: ' + message.action);
+            }
+        } catch(ex) {
+            console.log('Invalid message from websocket: ' + data);
+        }
 	}); 
 });
 

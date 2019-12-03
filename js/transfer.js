@@ -12,11 +12,11 @@ app.controller("Transfer", [ '$http', 'common', function($http, common) {
 
     $http.get('/account').then(function (rep) {
             ctrl.account = rep.data;
-    });
+    }, function(err) {});
 
-    $http.get('/emails').then(function(rep) {
+    $http.get('/recipients').then(function(rep) {
         ctrl.emails = rep.data;
-    });
+    }, function(err) {});
 
     ctrl.doTransfer = function() {
         $http.post('/account', ctrl.transaction).then(

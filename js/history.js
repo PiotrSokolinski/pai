@@ -1,5 +1,6 @@
-app.controller("History", [ '$http', function($http) {
+app.controller("History", [ '$http', 'globals', function($http, globals) {
     var ctrl = this;
+    ctrl.email = globals.email;
     
     var initVars = function() {
         ctrl.historyCount = 0;

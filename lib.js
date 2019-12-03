@@ -1,9 +1,13 @@
 /* internal modules */
 var fs = require('fs');
 var path = require('path');
+var WebSocket = require('ws');
 
 /* external modules */
 var mime = require('mime');
+
+/* own modules */
+var common = require('./common');
 
 var lib = module.exports = {
 
@@ -87,12 +91,33 @@ var lib = module.exports = {
         });
     },
     
-    send: function(ws, session, data) {
-        common.ws.clients.forEach(function(client) {
-            if(client.readyState === WebSocket.OPEN && client.session == session) {
-                console.log("Sending an event message to client " + client.session + " with data " + data);
-                client.send(JSON.stringify(event));
+    sendDataToSession: function(session, data) {
+        try {
+            console.log('Attempting to send data ' + data + ' to session ' + session);
+            var n = 0, nAll = 0;
+            common.ws.clients.forEach(function(client) {
+                nAll++;
+                if(client.session == session && client.readyState === WebSocket.OPEN) {
+                    client.send(data);
+                    n++;
+                }
+            });
+            console.log('Sent to ' + n + ' from ' + nAll + ' clients');
+        } catch(ex) {}
+    },
+
+    sendDataToAccount: function(_id, data) {
+        try {
+            console.log('Attempting to send data ' + data + ' to user ' + _id);
+            var n = 0, nAll = 0;
+            for(var session in common.sessions) {
+                nAll++;
+                if(_id.equals(common.sessions[session].accountNo) && common.sessions[session].ws && common.sessions[session].ws.readyState === WebSocket.OPEN) {
+                    common.sessions[session].ws.send(data);
+                    n++;
+                }
             }
-        });
+            console.log('Sent to ' + n + ' from ' + nAll + ' sessions');
+        } catch(ex) {}
     }
 };

@@ -45,25 +45,37 @@ module.exports = function(url, req, rep, query, payload, session) {
                                 }
                                 common.accounts.findOneAndUpdate({_id: common.sessions[session].accountNo},
                                     {$set: {balance: account.balance - payload.amount, lastOperation: new Date().getTime()}},
-                                    {returnOriginal: false}, function(err, updateData) {
+                                    {returnOriginal: false}, function(err, updated) {
                                     if(err) {
                                         lib.sendJSONWithError(rep, 400, 'Update failed'); return;
                                     }
                                     common.accounts.findOneAndUpdate({_id: recipient_id},
                                         {$inc: {balance: payload.amount, lastOperation: new Date().getTime()}},
-                                        {returnOriginal: false}, function(err, updated) {
+                                        {returnOriginal: false}, function(err, updated_r) {
+                                            if(err) {
+                                                console.log('Recipient account balance is not updated');
+                                                return;
+                                            }
+                                            common.history.insertOne({
+                                                date: updated.value.lastOperation,
+                                                account: common.sessions[session].accountNo,
+                                                recipient_id: recipient_id,
+                                                amount: payload.amount,
+                                                balance: updated.value.balance,
+                                                balance_r: updated_r.value.balance,
+                                                description: payload.description
+                                            });        
                                             // message to recipient
+                                            var msg = {
+                                                operation: 'transfer',
+                                                from: common.sessions[session].accountNo,
+                                                amount: payload.amount,
+                                                balance: updated_r.value.balance
+                                            };
+                                            lib.sendDataToAccount(recipient_id, JSON.stringify(msg));
                                         });
-                                    common.history.insertOne({
-                                        date: updateData.value.lastOperation,
-                                        account: common.sessions[session].accountNo,
-                                        recipient_id: recipient_id,
-                                        amount: payload.amount,
-                                        balance: updateData.value.balance,
-                                        description: payload.description
-                                    });
-                                    delete updateData.value.password;
-                                    lib.sendJSON(rep, updateData.value);    
+                                    delete updated.value.password;
+                                    lib.sendJSON(rep, updated.value);    
                                 });
                             });
                         }
@@ -73,7 +85,7 @@ module.exports = function(url, req, rep, query, payload, session) {
                     lib.sendJSONWithError(rep, 400, 'Invalid method ' + req.method + ' for ' + url);
             }
             break;
-        case '/emails':
+        case '/recipients':
             switch(req.method) {
                 case 'GET':
                     common.history.aggregate([
@@ -109,16 +121,25 @@ module.exports = function(url, req, rep, query, payload, session) {
                     }
                     common.history.aggregate([
                         {$match:q},
+                        {$lookup:{from:'accounts',localField:'account',foreignField:'_id',as:'sender'}},
+                        {$unwind:{path:'$sender'}},
+                        {$addFields:{email:'$sender.email'}},
                         {$lookup:{from:'accounts',localField:'recipient_id',foreignField:'_id',as:'recipient'}},
                         {$unwind:{path:'$recipient'}},
-                        {$addFields:{email:'$recipient.email'}},
-                        {$project:{account:false,recipient:false}},
+                        {$addFields:{email_r:'$recipient.email'}},
+                        {$project:{account:false,sender:false,recipient:false}},
                         {$sort:{date:-1}},{$skip:skip},{$limit:limit}
                     ]).toArray(function(err, entries) {
                         if(err)
                             lib.sendJSONWithError(rep, 400, 'History retrieving failed');    
-                        else
+                        else {
+                            entries.forEach(function(entry) {
+                                if(entry.email_r == common.sessions[session].email)
+                                    entry.balance = entry.balance_r;
+                                delete entry.balance_r;
+                            });
                             lib.sendJSON(rep, entries);
+                        }
                     });
                     break;
                 case 'DELETE':
@@ -126,7 +147,9 @@ module.exports = function(url, req, rep, query, payload, session) {
                         lib.sendJSONWithError(rep, 401, 'You are not logged in'); return;    
                     }
                     common.history.aggregate([
-                        {$match:{account: common.sessions[session].accountNo}},
+                        {$match:{$or: [{account: common.sessions[session].accountNo},{recipient_id: common.sessions[session].accountNo}]}},
+                        {$lookup:{from:'accounts',localField:'account',foreignField:'_id',as:'sender'}},
+                        {$unwind:{path:'$sender'}},
                         {$lookup:{from:'accounts',localField:'recipient_id',foreignField:'_id',as:'recipient'}},
                         {$unwind:{path:'$recipient'}},
                         {$count:'count'}
@@ -142,8 +165,12 @@ module.exports = function(url, req, rep, query, payload, session) {
         case '/login':
             switch(req.method) {
                 case 'GET':
-                    common.sessions[session].session = session;
-                    lib.sendJSON(rep, common.sessions[session]);
+                    var whoami = {
+                        session: session,
+                        accountNo: common.sessions[session].accountNo,
+                        email: common.sessions[session].email
+                    };
+                    lib.sendJSON(rep, whoami);
                     break;
                 case 'POST':
                     if(!payload || !payload.email || !payload.password) {
@@ -155,15 +182,16 @@ module.exports = function(url, req, rep, query, payload, session) {
                             lib.sendJSONWithError(rep, 401, 'Bad password');
                             return;
                         }
-                        common.sessions[session].accountNo = mongodb.ObjectId(account._id);
+                        common.sessions[session].accountNo = account._id;
                         common.sessions[session].email = account.email;
+                        delete account.password;
                         lib.sendJSON(rep, account);
                     });
                     break;
                 case 'DELETE':
                     delete common.sessions[session].accountNo;
                     delete common.sessions[session].email;
-                    lib.sendJSON(rep, common.sessions[session]);
+                    lib.sendJSON(rep, { session: session });
                     break;
                 default:
                     lib.sendJSONWithError(rep, 400, 'Invalid method ' + req.method + ' for ' + url);
