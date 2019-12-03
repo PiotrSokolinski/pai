@@ -85,5 +85,14 @@ var lib = module.exports = {
             }
             callback(req, rep, op, err);
         });
-    }   
+    },
+    
+    send: function(ws, session, data) {
+        common.ws.clients.forEach(function(client) {
+            if(client.readyState === WebSocket.OPEN && client.session == session) {
+                console.log("Sending an event message to client " + client.session + " with data " + data);
+                client.send(JSON.stringify(event));
+            }
+        });
+    }
 };

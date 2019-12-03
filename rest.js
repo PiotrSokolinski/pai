@@ -39,6 +39,10 @@ module.exports = function(url, req, rep, query, payload, session) {
                                     return;
                                 }
                                 var recipient_id = docs[0]._id;
+                                if(recipient_id.equals(account._id)) {
+                                    lib.sendJSONWithError(rep, 400, 'Sender and recipient are the same account');
+                                    return;
+                                }
                                 common.accounts.findOneAndUpdate({_id: common.sessions[session].accountNo},
                                     {$set: {balance: account.balance - payload.amount, lastOperation: new Date().getTime()}},
                                     {returnOriginal: false}, function(err, updateData) {
@@ -47,7 +51,9 @@ module.exports = function(url, req, rep, query, payload, session) {
                                     }
                                     common.accounts.findOneAndUpdate({_id: recipient_id},
                                         {$inc: {balance: payload.amount, lastOperation: new Date().getTime()}},
-                                        {returnOriginal: false});
+                                        {returnOriginal: false}, function(err, updated) {
+                                            // message to recipient
+                                        });
                                     common.history.insertOne({
                                         date: updateData.value.lastOperation,
                                         account: common.sessions[session].accountNo,
@@ -97,7 +103,7 @@ module.exports = function(url, req, rep, query, payload, session) {
                         lib.sendJSONWithError(rep, 400, 'Skip/limit errornous'); return;    
                         return;
                     }
-                    var q = {account: common.sessions[session].accountNo};
+                    var q = {$or: [{account: common.sessions[session].accountNo},{recipient_id: common.sessions[session].accountNo}]};
                     if(query.filter) {
                         q.description = {$regex: new RegExp(query.filter), $options: 'si'};
                     }
@@ -136,6 +142,7 @@ module.exports = function(url, req, rep, query, payload, session) {
         case '/login':
             switch(req.method) {
                 case 'GET':
+                    common.sessions[session].session = session;
                     lib.sendJSON(rep, common.sessions[session]);
                     break;
                 case 'POST':

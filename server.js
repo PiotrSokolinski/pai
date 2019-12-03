@@ -7,6 +7,7 @@ var qs = require('query-string');
 var mongodb = require('mongodb');
 var cookies = require('cookies');
 var uuid = require('uuid');
+var WebSocket = require('ws');
 
 /* own modules */
 var lib = require('./lib');
@@ -71,6 +72,14 @@ httpServer.on('request', function (req, rep) {
             }
     }
 
+});
+
+common.ws = new WebSocket.Server({ server: httpServer });
+
+common.ws.on('connection', function connection(conn) {
+	conn.on('message', function(message) {
+		console.log('Received from webSocket: ' + message);		
+	}); 
 });
 
 /* main */

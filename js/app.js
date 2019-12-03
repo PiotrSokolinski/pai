@@ -1,4 +1,4 @@
-var app = angular.module("app", ['ngSanitize', 'ngRoute', 'ngAnimate', 'ui.bootstrap']);
+var app = angular.module("app", ['ngSanitize', 'ngRoute', 'ngAnimate', 'ngWebSocket', 'ui.bootstrap']);
 
 // zmienne globalne
 app.value('globals', {
@@ -43,8 +43,8 @@ app.controller("loginDialog", [ '$http', '$uibModalInstance', function($http, $u
 
 }]);
 
-app.controller('Menu', ['$http', '$scope', '$location', '$uibModal', 'routes', 'globals', 'common',
-	function($http, $scope, $location, $uibModal, routes, globals, common) {
+app.controller('Menu', ['$http', '$scope', '$location', '$uibModal', '$websocket', 'routes', 'globals', 'common',
+	function($http, $scope, $location, $uibModal, $websocket, routes, globals, common) {
         var ctrl = this;
 
         ctrl.alert = common.alert;
@@ -62,6 +62,9 @@ app.controller('Menu', ['$http', '$scope', '$location', '$uibModal', 'routes', '
         $http.get('/login').then(
             function(rep) { 
                 globals.email = rep.data.email;
+                console.log('WebSocket initialization');
+                var dataStream = $websocket('ws://' + window.location.host);
+                dataStream.send(rep.data.accountNo);
                 refreshMenu();
             },
             function(err) { globals.email = null; }

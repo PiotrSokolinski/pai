@@ -1,5 +1,6 @@
 module.exports = {
     sessions: {},
     accounts: null,
-    history: null
+    history: null,
+    ws: null
 };
