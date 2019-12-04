@@ -9,6 +9,7 @@ module.exports = function(url, req, rep, query, payload, session) {
 
     console.log('REST handling ' + req.method + ' ' + url + ' query ' + JSON.stringify(query) + ' payload ' + JSON.stringify(payload) + ' session ' + session);
     switch(url) {
+
         case '/account':
             if(!common.sessions[session].accountNo) {
                 lib.sendJSONWithError(rep, 401, 'You are not logged in'); return;
@@ -85,6 +86,7 @@ module.exports = function(url, req, rep, query, payload, session) {
                     lib.sendJSONWithError(rep, 400, 'Invalid method ' + req.method + ' for ' + url);
             }
             break;
+
         case '/recipients':
             switch(req.method) {
                 case 'GET':
@@ -103,6 +105,7 @@ module.exports = function(url, req, rep, query, payload, session) {
                 default: lib.sendJSONWithError(rep, 400, 'Invalid method ' + req.method + ' for ' + url);
             }
             break;
+
         case '/history':
             switch(req.method) {
                 case 'GET':
@@ -127,17 +130,13 @@ module.exports = function(url, req, rep, query, payload, session) {
                         {$lookup:{from:'accounts',localField:'recipient_id',foreignField:'_id',as:'recipient'}},
                         {$unwind:{path:'$recipient'}},
                         {$addFields:{email_r:'$recipient.email'}},
-                        {$project:{account:false,sender:false,recipient:false}},
+                        {$addFields:{balance_after:{$cond:{if:{$eq:['$email',common.sessions[session].email]},then:'$balance',else:'$balance_r'}}}},
+                        {$project:{account:false,sender:false,recipient:false,balance:false,balance_r:false}},
                         {$sort:{date:-1}},{$skip:skip},{$limit:limit}
                     ]).toArray(function(err, entries) {
                         if(err)
-                            lib.sendJSONWithError(rep, 400, 'History retrieving failed');    
+                            lib.sendJSONWithError(rep, 400, 'History retrieving failed');
                         else {
-                            entries.forEach(function(entry) {
-                                if(entry.email_r == common.sessions[session].email)
-                                    entry.balance = entry.balance_r;
-                                delete entry.balance_r;
-                            });
                             lib.sendJSON(rep, entries);
                         }
                     });
@@ -162,6 +161,7 @@ module.exports = function(url, req, rep, query, payload, session) {
                     break;
             }
             break;
+
         case '/login':
             switch(req.method) {
                 case 'GET':
@@ -197,6 +197,7 @@ module.exports = function(url, req, rep, query, payload, session) {
                     lib.sendJSONWithError(rep, 400, 'Invalid method ' + req.method + ' for ' + url);
             }
             break;
+
         default:
             lib.sendJSONWithError(rep, 400, 'Invalid rest endpoint ' + url);
     }
