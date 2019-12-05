@@ -1,4 +1,4 @@
-app.controller("Transfer", [ '$http', 'common', function($http, common) {
+app.controller("Transfer", [ '$http', '$scope', 'common', function($http, $scope, common) {
     var ctrl = this;
     
     ctrl.account = {};
@@ -10,9 +10,13 @@ app.controller("Transfer", [ '$http', 'common', function($http, common) {
 
     initVars();
 
-    $http.get('/account').then(function (rep) {
+    var refreshAccount = function() {
+        $http.get('/account').then(function (rep) {
             ctrl.account = rep.data;
-    }, function(err) {});
+        }, function(err) {});
+    };
+
+    refreshAccount();
 
     $http.get('/recipients').then(function(rep) {
         ctrl.emails = rep.data;
@@ -34,4 +38,8 @@ app.controller("Transfer", [ '$http', 'common', function($http, common) {
     ctrl.formInvalid = function() {
         return ctrl.transaction.amount <= 0 || ctrl.account.balance - ctrl.transaction.amount < ctrl.account.limit;
     };
+
+    $scope.$on('ws', function(event, obj) {
+        refreshAccount();
+    });
 }]);

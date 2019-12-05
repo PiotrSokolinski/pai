@@ -1,4 +1,4 @@
-app.controller("History", [ '$http', 'globals', function($http, globals) {
+app.controller("History", [ '$http', '$scope', 'globals', function($http, $scope, globals) {
     var ctrl = this;
     ctrl.email = globals.email;
     
@@ -28,4 +28,8 @@ app.controller("History", [ '$http', 'globals', function($http, globals) {
     };
     
     ctrl.refreshHistory();
+
+    $scope.$on('ws', function(event, obj) {
+        ctrl.refreshHistory();
+    });
 }]);

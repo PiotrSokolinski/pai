@@ -43,8 +43,8 @@ app.controller("loginDialog", [ '$http', '$uibModalInstance', function($http, $u
 
 }]);
 
-app.controller('Menu', ['$http', '$scope', '$location', '$uibModal', '$websocket', 'routes', 'globals', 'common',
-	function($http, $scope, $location, $uibModal, $websocket, routes, globals, common) {
+app.controller('Menu', ['$http', '$rootScope', '$scope', '$location', '$uibModal', '$websocket', 'routes', 'globals', 'common',
+	function($http, $rootScope, $scope, $location, $uibModal, $websocket, routes, globals, common) {
         var ctrl = this;
 
         ctrl.alert = common.alert;
@@ -69,6 +69,7 @@ app.controller('Menu', ['$http', '$scope', '$location', '$uibModal', '$websocket
                     dataStream.onMessage(function(rep) {
                         try {
                             var message = JSON.parse(rep.data);
+                            $rootScope.$broadcast('ws', message);
                             common.showMessage(message.operation);
                         } catch(ex) {
                             console.error('Data from websocket cannot be parsed: ' + rep.data);
