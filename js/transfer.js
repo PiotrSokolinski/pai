@@ -39,7 +39,7 @@ app.controller("Transfer", [ '$http', '$scope', 'common', function($http, $scope
         return ctrl.transaction.amount <= 0 || ctrl.account.balance - ctrl.transaction.amount < ctrl.account.limit;
     };
 
-    $scope.$on('ws', function(event, obj) {
+    $scope.$on('transfer', function(event, obj) {
         refreshAccount();
     });
 }]);

@@ -69,8 +69,9 @@ app.controller('Menu', ['$http', '$rootScope', '$scope', '$location', '$uibModal
                     dataStream.onMessage(function(rep) {
                         try {
                             var message = JSON.parse(rep.data);
-                            $rootScope.$broadcast('ws', message);
-                            common.showMessage(message.operation);
+                            for(var topic in message) {
+                                $rootScope.$broadcast(topic, message[topic]);
+                            }
                         } catch(ex) {
                             console.error('Data from websocket cannot be parsed: ' + rep.data);
                         }

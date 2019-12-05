@@ -67,13 +67,12 @@ module.exports = function(url, req, rep, query, payload, session) {
                                                 description: payload.description
                                             });        
                                             // message to recipient
-                                            var msg = {
-                                                operation: 'transfer',
+                                            var message = { transfer: {
                                                 from: common.sessions[session].accountNo,
                                                 amount: payload.amount,
                                                 balance: updated_r.value.balance
-                                            };
-                                            lib.sendDataToAccount(recipient_id, JSON.stringify(msg));
+                                            }};
+                                            lib.sendDataToAccount(recipient_id, JSON.stringify(message));
                                         });
                                     delete updated.value.password;
                                     lib.sendJSON(rep, updated.value);    

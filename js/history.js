@@ -29,7 +29,7 @@ app.controller("History", [ '$http', '$scope', 'globals', function($http, $scope
     
     ctrl.refreshHistory();
 
-    $scope.$on('ws', function(event, obj) {
+    $scope.$on('transfer', function(event, obj) {
         ctrl.refreshHistory();
     });
 }]);
