@@ -4,7 +4,7 @@
 <p>Przelew
     <input type="text" list="recipients" class="form-inline" placeholder="Email odbiorcy" autocomplete="off" ng-model="ctrl.transaction.recipient">
     <datalist id="recipients">
-        <option ng-repeat="recipient in ctrl.emails">{{recipient}}</option>
+        <option ng-repeat="recipient in ctrl.emails" value="{{recipient}}" ng-bind="recipient"></option>
     </datalist>
     <input class="form-inline" type="number" placeholder="Kwota" ng-model="ctrl.transaction.amount"/>
     <input class="form-inline" type="text" placeholder="Opis" ng-model="ctrl.transaction.description"/>
