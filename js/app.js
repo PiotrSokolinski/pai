@@ -1,4 +1,4 @@
-var app = angular.module("app", ['ngSanitize', 'ngRoute', 'ngAnimate', 'ngWebSocket', 'ui.bootstrap']);
+var app = angular.module("app", ['ngSanitize', 'ngRoute', 'ngAnimate', 'ngWebSocket', 'ui.bootstrap', 'nvd3']);
 
 // zmienne globalne
 app.value('globals', {
@@ -9,7 +9,8 @@ app.value('globals', {
 app.constant('routes', [
 	{ route: '/', templateUrl: '/html/home.html', controller: 'Home', controllerAs: 'ctrl', menu: '<i class="fa fa-lg fa-home"></i>', guest: true },
 	{ route: '/transfer', templateUrl: '/html/transfer.html', controller: 'Transfer', controllerAs: 'ctrl', menu: 'Przelew' },
-	{ route: '/history', templateUrl: '/html/history.html', controller: 'History', controllerAs: 'ctrl', menu: 'Historia' }
+    { route: '/history', templateUrl: '/html/history.html', controller: 'History', controllerAs: 'ctrl', menu: 'Historia' },
+    { route: '/trend', templateUrl: '/html/trend.html', controller: 'Trend', controllerAs: 'ctrl', menu: 'Trend' }    
 ]);
 
 app.config(['$routeProvider', '$locationProvider', 'routes', function($routeProvider, $locationProvider, routes) {
@@ -173,4 +174,8 @@ app.service('common', [ '$uibModal', 'globals', function($uibModal, globals) {
         this.alert.text = msg;
     };
 
+    this.stamp2date = function(stamp) {
+        return new Date(stamp).toLocaleString();
+    };
+    
 }]);

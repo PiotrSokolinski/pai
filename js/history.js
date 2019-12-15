@@ -1,4 +1,4 @@
-app.controller("History", [ '$http', '$scope', 'globals', function($http, $scope, globals) {
+app.controller("History", [ '$http', '$scope', 'globals', 'common', function($http, $scope, globals, common) {
     var ctrl = this;
     ctrl.email = globals.email;
     
@@ -23,9 +23,7 @@ app.controller("History", [ '$http', '$scope', 'globals', function($http, $scope
         );
     };
 
-    ctrl.stamp2date = function(stamp) {
-        return new Date(stamp).toLocaleString();
-    };
+    ctrl.stamp2date = common.stamp2date;
     
     ctrl.refreshHistory();
 
