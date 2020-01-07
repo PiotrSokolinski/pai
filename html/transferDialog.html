@@ -1,16 +1,17 @@
-<h3>Saldo <span ng-bind="ctrl.account.balance"></span></h3>
-<p>Limit <span ng-bind="ctrl.account.limit"></span></p>
+<div class="modal-header">
+    Przelew
+</div>
 
-<p>Przelew
+<div class="modal-body">
     <input type="text" list="recipients" class="form-inline" placeholder="Email odbiorcy" autocomplete="off" ng-model="ctrl.transaction.recipient">
     <datalist id="recipients">
         <option ng-repeat="recipient in ctrl.emails" value="{{recipient}}" ng-bind="recipient"></option>
     </datalist>
     <input class="form-inline" type="number" placeholder="Kwota" ng-model="ctrl.transaction.amount"/>
     <input class="form-inline" type="text" placeholder="Opis" ng-model="ctrl.transaction.description"/>
-    <button class="btn btn-primary" ng-click="ctrl.doTransfer()" ng-disabled="ctrl.formInvalid()">Zrób</button>
-</p>
+</div>
 
-<p style="text-align: right;">
-    <button class="btn btn-primary" ng-click="ctrl.openModal()">Modal</button>
-</p>
+<div class="modal-footer">
+    <button class="btn btn-success fa fa-angle-right" ng-click="ctrl.submit(true)"></button>
+    <button class="btn btn-danger fa fa-angle-left" ng-click="ctrl.submit(false)"></button>
+</div>

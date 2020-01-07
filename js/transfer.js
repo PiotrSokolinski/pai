@@ -1,4 +1,4 @@
-app.controller("Transfer", [ '$http', '$scope', 'common', function($http, $scope, common) {
+app.controller("Transfer", [ '$http', '$scope', '$uibModal', 'common', function($http, $scope, $uibModal, common) {
     var ctrl = this;
     
     ctrl.account = {};
@@ -42,4 +42,39 @@ app.controller("Transfer", [ '$http', '$scope', 'common', function($http, $scope
     $scope.$on('transfer', function(event, obj) {
         refreshAccount();
     });
+
+    ctrl.openModal = function() {
+        var modalInstance = $uibModal.open({
+            animation: true,
+            ariaLabelledBy: 'modal-title-top',
+            ariaDescribedBy: 'modal-body-top',
+            templateUrl: '/html/transferDialog.html',
+            controller: 'TransferDialog',
+            controllerAs: 'ctrl',
+            resolve: {
+                emails: function() { return ctrl.emails; }
+            }
+        });
+        modalInstance.result.then(
+            function(data) {
+                ctrl.transaction.recipient = data.recipient;
+                ctrl.transaction.amount = data.amount;
+                ctrl.transaction.description = data.description;
+            });
+    };
+
+}]);
+
+app.controller("TransferDialog", [ '$uibModalInstance', 'emails', function($uibModalInstance, emails) {
+    console.log("TransferDialog start");
+    var ctrl = this;
+    ctrl.emails = emails;
+    ctrl.transaction = { recipient: '', amount: 0, description: '' };
+
+    ctrl.submit = function(submit) {
+        if(submit)
+            $uibModalInstance.close(ctrl.transaction);
+        else
+            $uibModalInstance.dismiss('cancel');
+    }
 }]);
