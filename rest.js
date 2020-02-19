@@ -6,7 +6,6 @@ var lib = require('./lib');
 var common = require('./common');
 
 module.exports = function(url, req, rep, query, payload, session) {
-
     console.log('REST handling ' + req.method + ' ' + url + ' query ' + JSON.stringify(query) + ' payload ' + JSON.stringify(payload) + ' session ' + session);
     switch(url) {
 
@@ -176,13 +175,20 @@ module.exports = function(url, req, rep, query, payload, session) {
                         lib.sendJSONWithError(rep, 401, 'Invalid credentials');
                         return;
                     }
+                    console.log('payload', payload);
                     common.accounts.findOne(payload, {}, function(err, account) {
+                        console.log('eeeee', account);
                         if(err || !account) {
                             lib.sendJSONWithError(rep, 401, 'Bad password');
                             return;
                         }
+                        console.log('eeeee', account);
                         common.sessions[session].accountNo = account._id;
                         common.sessions[session].email = account.email;
+                        //oszukane
+                        common.sessions[session].role = "Pracownik banku";
+                        account.role = "Pracownik banku";
+                        
                         delete account.password;
                         lib.sendJSON(rep, account);
                     });
@@ -196,6 +202,136 @@ module.exports = function(url, req, rep, query, payload, session) {
                     lib.sendJSONWithError(rep, 400, 'Invalid method ' + req.method + ' for ' + url);
             }
             break;
+
+        case '/register':
+            switch(req.method) {
+                case 'POST':
+                    if(!payload || !payload.email || !payload.password || !payload.repeatedPassword || payload.password !== payload.repeatedPassword) {
+                        lib.sendJSONWithError(rep, 401, 'Error');
+                        return;
+                    }
+                    common.motions.insertOne({
+                        email: payload.email,
+                        password: payload.password,
+                        name: payload.name,
+                        surname: payload.surname,
+                        status: 'Active',
+                    }).then(result => lib.sendJSON(rep, result.ops[0]));  
+                    break;
+                default:
+                    lib.sendJSONWithError(rep, 400, 'Invalid method ' + req.method + ' for ' + url);
+            }
+            break;
+
+            case '/motions':
+                switch(req.method) {
+                    case 'GET':
+                        if(!common.sessions[session].accountNo) {
+                            lib.sendJSONWithError(rep, 401, 'You are not logged in'); return;    
+                        }
+                        if(common.sessions[session].role !== 'Pracownik banku') {
+                            lib.sendJSONWithError(rep, 401, 'You are not not authorized'); return;    
+                        }
+                        var skip = parseInt(query.skip);
+                        var limit = parseInt(query.limit);
+                        if(isNaN(skip) || isNaN(limit) || skip < 0 || limit <= 0) {
+                            lib.sendJSONWithError(rep, 400, 'Skip/limit errornous'); return;    
+                        }
+                        common.motions.aggregate([]).toArray(function(err, entries) {
+                            if(err)
+                                lib.sendJSONWithError(rep, 400, 'Motions retrieving failed');
+                            else {
+                                var finalEntries = [];
+                                if(query.filter) {
+                                    for(let i = 0; i < entries.length; i++) {
+                                        if(entries[i].email.includes(query.filter)) {
+                                            finalEntries.push(entries[i]);
+                                        }
+                                    }
+                                } else {
+                                    finalEntries = entries;
+                                }
+                                if(query.status === 'AccountActivated') {
+                                    query.status = 'Account activated'; 
+                                }
+                                if(query.status === 'All') {
+                                    lib.sendJSON(rep, finalEntries.slice(0, limit));
+                                    return
+                                }
+                                var finalFinalEntries = []
+                                for(let j = 0; j < finalEntries.length; j++) {
+                                    if(finalEntries[j].status === query.status) {
+                                        finalFinalEntries.push(finalEntries[j])
+                                    }
+                                }
+                                lib.sendJSON(rep, finalFinalEntries.slice(0, limit));
+                            }
+                        });
+                        break;
+                    case 'DELETE':
+                        if(!common.sessions[session].accountNo) {
+                            lib.sendJSONWithError(rep, 401, 'You are not logged in'); return;    
+                        }
+                        if(common.sessions[session].role !== 'Pracownik banku') {
+                            lib.sendJSONWithError(rep, 401, 'You are not not authorized'); return;    
+                        }
+                        common.motions.aggregate([]).toArray(function(err, docs) {
+                            lib.sendJSON(rep, docs.length)
+                        });
+                        break;
+                    case 'PATCH':
+                        if(!common.sessions[session].accountNo) {
+                            lib.sendJSONWithError(rep, 401, 'You are not logged in'); return;    
+                        }
+                        if(common.sessions[session].role !== 'Pracownik banku') {
+                            lib.sendJSONWithError(rep, 401, 'You are not not authorized'); return;    
+                        }
+                        common.motions.findOne({_id: mongodb.ObjectId(query.id)}, {}, function(err, doc) {
+                            if(err) {
+                                lib.sendJSONWithError(rep, 400, 'No such object'); return;
+                            }
+                            if(doc.status === 'Active' && query.make === 'Activated') {
+                                common.motions.findOneAndUpdate({_id: mongodb.ObjectId(query.id)}, {$set: {status: "Account activated"}}, function(err, doc) {
+                                    if(err) {
+                                        lib.sendJSONWithError(rep, 400, 'No such object'); return;
+                                    }
+                                    console.log('doc', doc.value);
+                                    common.accounts.insertOne({
+                                        email: doc.value.email,
+                                        password: doc.value.password,
+                                    }).then(result => console.log('result', result));
+                                    lib.sendJSON(rep, doc.value)
+                                });
+                            }
+                            if(doc.status === 'Inactive' && query.make === 'Active') {
+                                common.motions.findOneAndUpdate({_id: mongodb.ObjectId(query.id)}, {$set: {status: "Active"}}, function(err, doc) {
+                                    if(err) {
+                                        lib.sendJSONWithError(rep, 400, 'No such object'); return;
+                                    }
+                                    lib.sendJSON(rep, doc)
+                                });
+                            }
+                            if(doc.status === 'Active' && query.make === 'Inactive') {
+                                common.motions.findOneAndUpdate({_id: mongodb.ObjectId(query.id)}, {$set: {status: "Inactive"}}, function(err, doc) {
+                                    if(err) {
+                                        lib.sendJSONWithError(rep, 400, 'No such object'); return;
+                                    }
+                                    lib.sendJSON(rep, doc)
+                                });
+                            }
+                            if(doc.status === 'Account activated' && query.make === 'Inactive') {
+                                common.motions.findOneAndUpdate({_id: mongodb.ObjectId(query.id)}, {$set: {status: "Inactive"}}, function(err, doc) {
+                                    if(err) {
+                                        lib.sendJSONWithError(rep, 400, 'No such object'); return;
+                                    }
+                                    common.accounts.findOneAndDelete({_id: mongodb.ObjectId(query.id)})
+                                    lib.sendJSON(rep, doc)
+                                });
+                            }
+                        });
+                        break;
+                }
+                break;
 
         default:
             lib.sendJSONWithError(rep, 400, 'Invalid rest endpoint ' + url);

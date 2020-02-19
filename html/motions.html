@@ -1,0 +1,29 @@
+<h3>Wnioski</h3>
+Rekordów <span ng-bind="ctrl.motions.length"></span> / <span ng-bind="ctrl.motionsCount"></span>
+<input class="form-inline" type="number" placeholder="Limit" ng-model="ctrl.motionsLimit" ng-change="ctrl.refreshMotions()"/>
+<input class="form-inline" type="text" placeholder="Filtruj" ng-model="ctrl.motionsFilter" ng-change="ctrl.refreshMotions()"/>
+<label for="status">Status:</label>
+<select id="status" ng-change="ctrl.refreshMotions()" ng-model="ctrl.status">
+    <option value="All" selected="selected">All</option>
+    <option value="Active">Active</option>
+    <option value="Inactive">Inactive</option>
+    <option value="AccountActivated">Account activated</option>
+  </select>
+<table class="table table-hover">
+    <tr>
+        <th style="text-align: center;">Imie</th>
+        <th style="text-align: center;">Nazwisko</th>
+        <th style="text-align: center;">Email</th>
+        <th style="text-align: center;">Hasło</th>
+        <th style="text-align: center;">Status</th>
+    </tr>
+    <tr ng-repeat="entry in ctrl.motions" ng-click="ctrl.changeStatus($index)">
+        <!-- <td ng-bind="ctrl.stamp2date(entry.date)"></!-->
+        <td style="text-align: center;" ng-bind="entry.name"></td>
+        <td style="text-align: center;" ng-bind="entry.surname"></td>
+        <td style="text-align: center;" ng-bind="entry.email"></td>
+        <td style="text-align: center;" ng-bind="entry.password"></td>
+        <td style="text-align: center;" ng-bind="entry.status"></td>
+
+    </tr>
+</table>

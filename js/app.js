@@ -2,7 +2,8 @@ var app = angular.module("app", ['ngSanitize', 'ngRoute', 'ngAnimate', 'ngWebSoc
 
 // zmienne globalne
 app.value('globals', {
-    email: ''
+    email: '',
+    role: '',
 });
 
 // nowe podstrony i ich kontrolery
@@ -10,7 +11,8 @@ app.constant('routes', [
 	{ route: '/', templateUrl: '/html/home.html', controller: 'Home', controllerAs: 'ctrl', menu: '<i class="fa fa-lg fa-home"></i>', guest: true },
 	{ route: '/transfer', templateUrl: '/html/transfer.html', controller: 'Transfer', controllerAs: 'ctrl', menu: 'Przelew' },
     { route: '/history', templateUrl: '/html/history.html', controller: 'History', controllerAs: 'ctrl', menu: 'Historia' },
-    { route: '/trend', templateUrl: '/html/trend.html', controller: 'Trend', controllerAs: 'ctrl', menu: 'Trend' }    
+    { route: '/trend', templateUrl: '/html/trend.html', controller: 'Trend', controllerAs: 'ctrl', menu: 'Trend' },
+    { route: '/motions', templateUrl: '/html/motions.html', controller: 'Motions', controllerAs: 'ctrl', menu: 'Motions' }    
 ]);
 
 app.config(['$routeProvider', '$locationProvider', 'routes', function($routeProvider, $locationProvider, routes) {
@@ -21,16 +23,112 @@ app.config(['$routeProvider', '$locationProvider', 'routes', function($routeProv
 	$routeProvider.otherwise({ redirectTo: '/' });
 }]);
 
+app.controller('Motions', [ '$http', 'common', '$uibModal', 'globals', function($http, common, $uibModal, globals) {
+    if(globals.role !== 'Pracownik banku') {
+        return;
+    }
+    var ctrl = this;
+    // ctrl.email = globals.email;
+    
+    var initVars = function() {
+        ctrl.motionsCount = 0;
+        ctrl.motionsLimit = 5;
+        ctrl.motionsFilter = '';
+        ctrl.status = 'All'
+        ctrl.error = false;
+    };
+
+    ctrl.changeStatus = function(index) {
+        var body;
+        switch(ctrl.motions[index].status) {
+            case 'Account activated':
+                body = "Do you want to make this motion inactive?";
+                break;
+            case 'Active':
+                body = "Do you want to make this motion activated and create an account for this user?";
+                break;
+            case 'Inactive':
+                body = "Do you want to make this motion active and consider this motion again?";
+                break;
+            // case 'Account activated':
+            //     body = "Do you want to make this motion inactive?";
+            //     break;
+        }
+        common.confirm( { title: "Change status of the motion", body: body, noOk: false, noCancel: false } , function(answer) {
+            if(answer && ctrl.motions[index].status === 'Active') {
+                $http.patch('/motions?id=' + ctrl.motions[index]._id + '&make=Activated').then(
+                    function(rep) {
+                        ctrl.refreshMotions();
+                    },
+                    function(err) {
+                        ctrl.error = true;
+                    }
+                );
+            }
+            if(answer && ctrl.motions[index].status === 'Inactive') {
+                $http.patch('/motions?id=' + ctrl.motions[index]._id + '&make=Active').then(
+                    function(rep) {
+                        ctrl.refreshMotions();
+                    },
+                    function(err) {
+                        ctrl.error = true;
+                    }
+                );
+            }
+            if(!answer && ctrl.motions[index].status === 'Active') {
+                $http.patch('/motions?id=' + ctrl.motions[index]._id + '&make=Inactive').then(
+                    function(rep) {
+                        ctrl.refreshMotions();
+                    },
+                    function(err) {
+                        ctrl.error = true;
+                    }
+                );
+            }
+            if(answer && ctrl.motions[index].status === 'Account activated') {
+                $http.patch('/motions?id=' + ctrl.motions[index]._id + '&make=Inactive').then(
+                    function(rep) {
+                        ctrl.refreshMotions();
+                    },
+                    function(err) {
+                        ctrl.error = true;
+                    }
+                );
+            }
+          } )
+    }
+
+    initVars();
+
+    ctrl.refreshMotions = function() {
+        $http.delete('/motions').then(
+            function(rep) { console.log(rep); return ctrl.motionsCount = rep.data; },
+            function(err) {}
+        );
+        var limit = ctrl.motionsLimit;
+        if(limit <= 0) limit = 1;
+        $http.get('/motions?skip=0&limit=' + limit + '&filter=' + ctrl.motionsFilter + '&status=' + ctrl.status).then(
+            function(rep) { ctrl.motions = rep.data; console.log(ctrl.motions);},
+            function(err) {}
+        );
+    };
+
+    ctrl.refreshMotions();
+
+}]);
+
 app.controller("loginDialog", [ '$http', '$uibModalInstance', function($http, $uibModalInstance) {
     var ctrl = this;
     // devel: dla szybszego logowania
-    ctrl.creds = { email: 'jim@beam.com', password: 'admin1' };
+    ctrl.creds = { email: 'radek@gmail.com', password: 'Password1!' };
     ctrl.loginError = false;
 
     ctrl.tryLogin = function() {
         $http.post('/login', ctrl.creds).then(
             function(rep) {
-                $uibModalInstance.close(rep.data.email);
+                console.log('rep', rep);
+                localStorage.setItem('user', rep.data.email);
+                $uibModalInstance.close(rep.data);
             },
             function(err) {
                 ctrl.loginError = true;
@@ -44,17 +142,51 @@ app.controller("loginDialog", [ '$http', '$uibModalInstance', function($http, $u
 
 }]);
 
+app.controller("registerDialog", [ '$http', '$uibModalInstance', function($http, $uibModalInstance) {
+    var ctrl = this;
+    ctrl.registerError = false;
+    ctrl.success = false;
+    ctrl.tryRegister = function() {
+        $http.post('/register', ctrl.creds).then(
+            function(rep) {
+                $uibModalInstance.close(rep);
+                ctrl.creds.email = "";
+                ctrl.creds.password = "";
+                ctrl.creds.repeatedPassword = "";
+                ctrl.success = true;
+            },
+            function(err) {
+                ctrl.registerError = true;
+            }
+        );
+    };
+
+
+    ctrl.cancel = function() {
+        $uibModalInstance.dismiss('cancel');
+    };
+
+}]);
+
 app.controller('Menu', ['$http', '$rootScope', '$scope', '$location', '$uibModal', '$websocket', 'routes', 'globals', 'common',
 	function($http, $rootScope, $scope, $location, $uibModal, $websocket, routes, globals, common) {
         var ctrl = this;
-
         ctrl.alert = common.alert;
         ctrl.menu = [];
 
+
         var refreshMenu = function() {
             ctrl.menu = [];
+            ctrl.loggedIn = !!!globals.email;
+            // ctrl.loggedIn = !!localStorage.getItem('user') ? true : false;
             for (var i in routes) {
                 if(routes[i].guest || globals.email) {
+                    console.log('gloabls', globals.role)
+                    console.log('ee', routes[i].route === '/motions' && globals.role !== 'Pracownik banku');
+                    if(routes[i].route === '/motions' && globals.role !== 'Pracownik banku') {
+                        console.log('wchodze')
+                        continue;
+                    }
                     ctrl.menu.push({route: routes[i].route, title: routes[i].menu});
                 }
             }
@@ -63,6 +195,7 @@ app.controller('Menu', ['$http', '$rootScope', '$scope', '$location', '$uibModal
         $http.get('/login').then(
             function(rep) { 
                 globals.email = rep.data.email;
+                ctrl.loggedIn = !!!globals.email;
                 refreshMenu();
 
                 try {
@@ -106,6 +239,7 @@ app.controller('Menu', ['$http', '$rootScope', '$scope', '$location', '$uibModal
                         $http.delete('/login').then(
                             function(rep) {
                                 globals.email = null;
+                                localStorage.removeItem('user');
                                 refreshMenu();
                                 $location.path('/');
                             },
@@ -124,11 +258,31 @@ app.controller('Menu', ['$http', '$rootScope', '$scope', '$location', '$uibModal
                 });
                 modalInstance.result.then(
                     function(data) {
-                        globals.email = data;
+                        globals.email = data.email;
+                        globals.role = data.role;
+                        ctrl.loggedIn = true;
                         refreshMenu();
                         $location.path('/');
                     });
             }};
+
+            ctrl.register = function() {
+                var modalInstance =  $uibModal.open({
+                    animation: true,
+                    ariaLabelledBy: 'modal-title-top',
+                    ariaDescribedBy: 'modal-body-top',
+                    templateUrl: '/html/registerDialog.html',
+                    controller: 'registerDialog',
+                    controllerAs: 'ctrl'
+                });
+                modalInstance.result.then(
+                    function(data) {
+                        console.log('data', data)
+                        // globals.email = data;
+                        refreshMenu();
+                        $location.path('/');
+                    });
+            }
 
         ctrl.closeAlert = function() { ctrl.alert.text = ""; };
 }]);
@@ -139,7 +293,6 @@ app.controller('Menu', ['$http', '$rootScope', '$scope', '$location', '$uibModal
     common.showError( message )
 */
 app.service('common', [ '$uibModal', 'globals', function($uibModal, globals) {
-
     this.confirm = function(confirmOptions, callback) {
 
         var modalInstance = $uibModal.open({

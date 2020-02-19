@@ -46,7 +46,9 @@
 						<ul class="nav navbar-nav navbar-right">
 							<li><a ng-bind-html="ctrl.loginIcon()" ng-click="ctrl.login()"></a></li>
 						</ul>
-
+						<ul style="display: flex; align-items: center;" class="nav navbar-nav navbar-right" ng-click="ctrl.register()" ng-if="ctrl.loggedIn">
+							<span>Register: </span><li><a class="btn fa fa-user"></a></li>
+						</ul>
 					</div>
 				</div>
 			</nav>

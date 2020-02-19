@@ -78,12 +78,15 @@ var lib = module.exports = {
         req.setEncoding('utf8');
         var payload = '';
         req.on('data', function(data) {
+            console.log('data', data)
             payload += data;
         }).on('end', function() {
             try {
+                console.log('eeeeeeeeeee', {payload});
                 op = JSON.parse(payload);
                 err = null;
             } catch(ex) {
+                console.log(ex)
                 op = null;
                 err = { text: "Payload is not a valid JSON" };
             }

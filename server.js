@@ -114,6 +114,7 @@ mongodb.MongoClient.connect(config.db, { useNewUrlParser: true, useUnifiedTopolo
     var db = conn.db(config.dbName);
     common.accounts = db.collection('accounts');
     common.history = db.collection('history');
+    common.motions = db.collection('motions');
     console.log('Connection with ' + config.db + ' established');
     httpServer.listen(config.port);
     console.log("HTTP server is listening on the port " + config.port);

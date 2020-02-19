@@ -1,3 +1,2 @@
 app.controller("Home", [ function() {
-
 }]);

@@ -1,0 +1,26 @@
+<form name="registerForm">
+
+    <div class="modal-header">
+        <h3 class="modal-title" id="modal-title">Wniosek o rejestracje</h3>
+    </div>
+
+    <div class="modal-body" id="modal-body">
+        <label for="name">Name</label>
+        <input id="name" type="text" class="form-control" ng-model="ctrl.creds.name" required="true" ng-change="ctrl.registerError = false;"/>
+        <label for="surname">Surname</label>
+        <input id="surname" type="text" class="form-control" ng-model="ctrl.creds.surname" ng-change="ctrl.registerError = false;"/>
+        <label for="email">Email</label>
+        <input id="email" type="text" class="form-control" ng-model="ctrl.creds.email" required="true" ng-change="ctrl.registerError = false;"/>
+        <label for="password">Hasło</label>
+        <input id="password" type="password" class="form-control" ng-model="ctrl.creds.password" ng-change="ctrl.registerError = false;"/>
+        <label for="password">Potwórz hasło</label>
+        <input id="repeatPassword" type="password" class="form-control" ng-model="ctrl.creds.repeatedPassword" ng-change="ctrl.registerError = false;"/>
+    </div>
+
+    <div class="modal-footer">
+        <span style="float: left;" class="label label-warning" ng-if="ctrl.registerError">Bład</span>
+        <span style="float: left;" class="label label-warning" ng-if="ctrl.success">Success</span>
+        <button class="btn btn-success fa fa-sign-in" type="submit" ng-disabled="registerForm.$invalid" ng-click="ctrl.tryRegister()"></button>
+        <button class="btn btn-danger fa fa-times" type="button" ng-click="ctrl.cancel()"></button>
+    </div>
+</form>
