@@ -175,20 +175,14 @@ module.exports = function(url, req, rep, query, payload, session) {
                         lib.sendJSONWithError(rep, 401, 'Invalid credentials');
                         return;
                     }
-                    console.log('payload', payload);
                     common.accounts.findOne(payload, {}, function(err, account) {
-                        console.log('eeeee', account);
                         if(err || !account) {
                             lib.sendJSONWithError(rep, 401, 'Bad password');
                             return;
                         }
-                        console.log('eeeee', account);
                         common.sessions[session].accountNo = account._id;
                         common.sessions[session].email = account.email;
-                        //oszukane
-                        common.sessions[session].role = "Pracownik banku";
-                        account.role = "Pracownik banku";
-                        
+                        common.sessions[session].role = account.role;
                         delete account.password;
                         lib.sendJSON(rep, account);
                     });
@@ -299,6 +293,7 @@ module.exports = function(url, req, rep, query, payload, session) {
                                     common.accounts.insertOne({
                                         email: doc.value.email,
                                         password: doc.value.password,
+                                        role: 'Normalny uzytkownik',
                                     }).then(result => console.log('result', result));
                                     lib.sendJSON(rep, doc.value)
                                 });

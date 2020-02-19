@@ -120,7 +120,7 @@ app.controller('Motions', [ '$http', 'common', '$uibModal', 'globals', function(
 app.controller("loginDialog", [ '$http', '$uibModalInstance', function($http, $uibModalInstance) {
     var ctrl = this;
     // devel: dla szybszego logowania
-    ctrl.creds = { email: 'radek@gmail.com', password: 'Password1!' };
+    ctrl.creds = { email: 'woj@gmail.com', password: 'Password1!' };
     ctrl.loginError = false;
 
     ctrl.tryLogin = function() {
