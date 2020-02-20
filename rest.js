@@ -289,7 +289,6 @@ module.exports = function(url, req, rep, query, payload, session) {
                                     if(err) {
                                         lib.sendJSONWithError(rep, 400, 'No such object'); return;
                                     }
-                                    console.log('doc', doc.value);
                                     common.accounts.insertOne({
                                         email: doc.value.email,
                                         password: doc.value.password,
@@ -298,11 +297,16 @@ module.exports = function(url, req, rep, query, payload, session) {
                                     lib.sendJSON(rep, doc.value)
                                 });
                             }
-                            if(doc.status === 'Inactive' && query.make === 'Active') {
-                                common.motions.findOneAndUpdate({_id: mongodb.ObjectId(query.id)}, {$set: {status: "Active"}}, function(err, doc) {
+                            if(doc.status === 'Inactive' && query.make === 'Activated') {
+                                common.motions.findOneAndUpdate({_id: mongodb.ObjectId(query.id)}, {$set: {status: "Account activated"}}, function(err, doc) {
                                     if(err) {
                                         lib.sendJSONWithError(rep, 400, 'No such object'); return;
                                     }
+                                    common.accounts.insertOne({
+                                        email: doc.value.email,
+                                        password: doc.value.password,
+                                        role: 'Normalny uzytkownik',
+                                    }).then(result => console.log('result', result));
                                     lib.sendJSON(rep, doc)
                                 });
                             }
@@ -319,8 +323,12 @@ module.exports = function(url, req, rep, query, payload, session) {
                                     if(err) {
                                         lib.sendJSONWithError(rep, 400, 'No such object'); return;
                                     }
-                                    common.accounts.findOneAndDelete({_id: mongodb.ObjectId(query.id)})
-                                    lib.sendJSON(rep, doc)
+                                    const payload = {
+                                        email: doc.value.email,
+                                        password: doc.value.password,
+                                    };
+                                    common.accounts.deleteOne(payload, {});
+                                    lib.sendJSON(rep, doc);
                                 });
                             }
                         });

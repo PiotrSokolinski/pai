@@ -48,7 +48,7 @@ app.controller('Motions', [ '$http', 'common', '$uibModal', 'globals', function(
                 body = "Do you want to make this motion activated and create an account for this user?";
                 break;
             case 'Inactive':
-                body = "Do you want to make this motion active and consider this motion again?";
+                body = "Do you want to make this motion activated?";
                 break;
             // case 'Account activated':
             //     body = "Do you want to make this motion inactive?";
@@ -66,7 +66,7 @@ app.controller('Motions', [ '$http', 'common', '$uibModal', 'globals', function(
                 );
             }
             if(answer && ctrl.motions[index].status === 'Inactive') {
-                $http.patch('/motions?id=' + ctrl.motions[index]._id + '&make=Active').then(
+                $http.patch('/motions?id=' + ctrl.motions[index]._id + '&make=Activated').then(
                     function(rep) {
                         ctrl.refreshMotions();
                     },
